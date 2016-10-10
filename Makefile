@@ -234,7 +234,7 @@ INCLUDES		+=	-Iinclude/bl1				\
 
 include ${MAKE_HELPERS_DIRECTORY}plat_helpers.mk
 
-BUILD_BASE		:=	./build
+BUILD_BASE		:=	${IPL_OUT}
 BUILD_PLAT		:=	${BUILD_BASE}/${PLAT}/${BUILD_TYPE}
 
 SPDS			:=	$(sort $(filter-out none, $(patsubst services/spd/%,%,$(wildcard services/spd/*))))
