@@ -31,13 +31,14 @@ dummy: $(IPL_OUT)
 	@echo "Building dymmy"
 	$(hide) CROSS_COMPILE=$(IPL_COMPILE) make -C $(SA_SRC) O=$(IPL_OUT) clean
 	$(hide) CROSS_COMPILE=$(IPL_COMPILE) make -C $(SA_SRC) O=$(IPL_OUT)
+	$(hide) cp $(SA_SRC)/*.bin $(ANDROID_BUILD_TOP)/$(PRODUCT_OUT)/
 	$(hide) cp $(SA_SRC)/*.srec $(ANDROID_BUILD_TOP)/$(PRODUCT_OUT)/
 
 ipl: $(IPL_OUT) dummy
 	@echo "Building ipl"
 	$(hide) CROSS_COMPILE=$(IPL_COMPILE) make PLAT=$(PLATFORM) LSI=$(TARGET_LSI) -C $(IPL_SRC) O=$(IPL_OUT) distclean
 	$(hide) CROSS_COMPILE=$(IPL_COMPILE) make -e MAKEFLAGS= PLAT=$(PLATFORM) LSI=$(TARGET_LSI) -C $(IPL_SRC) O=$(IPL_OUT) all
-
+	$(hide) cp $(IPL_OUT)/$(PLATFORM)/$(RELEASE)/*.bin $(ANDROID_BUILD_TOP)/$(PRODUCT_OUT)/
 	$(hide) cp $(IPL_OUT)/$(PLATFORM)/$(RELEASE)/*.srec $(ANDROID_BUILD_TOP)/$(PRODUCT_OUT)/
 
 .PHONY: ipl iplclean dummy
