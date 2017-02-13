@@ -50,7 +50,7 @@ android_dummy: $(IPL_DUMMY_OUT)
 	$(hide) cp -R $(IPL_SRC)/tools/ $(IPL_DUMMY_OUT)
 	$(hide) cp -R $(IPL_SRC)/include/ $(IPL_DUMMY_OUT)
 	$(hide) CROSS_COMPILE=$(IPL_COMPILE) make -C $(IPL_DUMMY_OUT)/tools/dummy_create clean
-	$(hide) CROSS_COMPILE=$(IPL_COMPILE) make -C $(IPL_DUMMY_OUT)/tools/dummy_create
+	$(hide) CROSS_COMPILE=$(IPL_COMPILE) make CPPFLAGS="-D=AARCH64" -C $(IPL_DUMMY_OUT)/tools/dummy_create
 
 android_ipl: $(IPL_OUT)
 	@echo "Building ipl"
