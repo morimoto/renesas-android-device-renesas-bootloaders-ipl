@@ -12,10 +12,10 @@ ifeq ($(USE_MULTIMEDIA), 1)
 export RCAR_LOSSY_ENABLE=1
 endif
 
-ifeq ($(TARGET_PRODUCT),salvator_car_h3)
+ifeq ($(TARGET_BOARD_PLATFORM),r8a7795)
     TARGET_LSI=H3
     export RCAR_DRAM_SPLIT=1
-else ifeq ($(TARGET_PRODUCT),salvator_car_m3)
+else ifeq ($(TARGET_BOARD_PLATFORM),r8a7796)
     TARGET_LSI=M3
     export RCAR_DRAM_SPLIT=2
 else
