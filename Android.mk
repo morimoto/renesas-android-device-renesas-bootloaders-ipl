@@ -2,7 +2,7 @@ IPL_SRC=$(ANDROID_BUILD_TOP)/device/renesas/bootloaders/ipl/
 SA_SRC=$(ANDROID_BUILD_TOP)/device/renesas/bootloaders/ipl/tools/dummy_create
 export IPL_OUT=$(ANDROID_BUILD_TOP)/$(TARGET_OUT_INTERMEDIATES)/IPL_OBJ
 IPL_DUMMY_OUT=$(ANDROID_BUILD_TOP)/$(TARGET_OUT_INTERMEDIATES)/IPL_DUMMY_OBJ
-IPL_COMPILE=$(ANDROID_BUILD_TOP)/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-gnu-5.1/bin/aarch64-linux-gnu-
+IPL_COMPILE=$(ANDROID_BUILD_TOP)/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-gnu-5.2/bin/aarch64-linux-gnu-
 
 PLATFORM=rcar
 RELEASE=release
