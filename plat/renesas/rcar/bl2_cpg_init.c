@@ -233,7 +233,7 @@ static void bl2_system_cpg_init_m3(void)
 	/* System Module Stop Control Register 8 */
 	cpg_write(SMSTPCR8,	0x01F1FFF7U);
 	/* System Module Stop Control Register 9 */
-	cpg_write(SMSTPCR9,	0xFFFFFFFFU);
+	cpg_write(SMSTPCR9,	0xFFFFFFBEU);
 	/* System Module Stop Control Register 10 */
 	cpg_write(SMSTPCR10,	0xFFFEFFE0U);
 	/* System Module Stop Control Register 11 */
