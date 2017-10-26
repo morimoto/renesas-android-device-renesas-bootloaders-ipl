@@ -12,6 +12,18 @@ PLATFORM_FLAGS = \
     LSI=AUTO \
     RCAR_DRAM_SPLIT=3
 
+ifeq ($(TARGET_PRODUCT),ulcb)
+PLATFORM_FLAGS += \
+    RCAR_GEN3_ULCB=1 \
+    PMIC_LEVEL_MODE=0
+endif
+
+ifeq ($(TARGET_PRODUCT),kingfisher)
+PLATFORM_FLAGS += \
+    RCAR_GEN3_ULCB=1 \
+    PMIC_LEVEL_MODE=0
+endif
+
 ifeq ($(USE_MULTIMEDIA), 1)
 export RCAR_LOSSY_ENABLE=1
 endif
