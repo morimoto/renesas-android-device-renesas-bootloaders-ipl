@@ -4,7 +4,7 @@ export IPL_OUT=$(ANDROID_BUILD_TOP)/$(TARGET_OUT_INTERMEDIATES)/IPL_OBJ
 IPL_DUMMY_OUT=$(ANDROID_BUILD_TOP)/$(TARGET_OUT_INTERMEDIATES)/IPL_DUMMY_OBJ
 IPL_COMPILE=$(ANDROID_BUILD_TOP)/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-gnu-5.2/bin/aarch64-linux-gnu-
 
-RELEASE=release
+BUILD=release
 USE_MULTIMEDIA=1
 
 PLATFORM_FLAGS = \
@@ -116,7 +116,7 @@ include $(BUILD_EXECUTABLE)
 
 include $(CLEAR_VARS)
 
-BL2_BIN := $(IPL_OUT)/rcar/release/bl2.bin
+BL2_BIN := $(IPL_OUT)/rcar/${BUILD}/bl2.bin
 $(BL2_BIN): android_ipl
 
 LOCAL_MODULE := bl2.bin
@@ -128,7 +128,7 @@ include $(BUILD_EXECUTABLE)
 
 include $(CLEAR_VARS)
 
-BL2_SREC := $(IPL_OUT)/rcar/release/bl2.srec
+BL2_SREC := $(IPL_OUT)/rcar/${BUILD}/bl2.srec
 $(BL2_SREC): android_ipl
 
 LOCAL_MODULE := bl2.srec
@@ -140,7 +140,7 @@ include $(BUILD_EXECUTABLE)
 
 include $(CLEAR_VARS)
 
-BL31_BIN := $(IPL_OUT)/rcar/release/bl31.bin
+BL31_BIN := $(IPL_OUT)/rcar/${BUILD}/bl31.bin
 $(BL31_BIN): android_ipl
 
 LOCAL_MODULE := bl31.bin
@@ -152,7 +152,7 @@ include $(BUILD_EXECUTABLE)
 
 include $(CLEAR_VARS)
 
-BL31_SREC := $(IPL_OUT)/rcar/release/bl31.srec
+BL31_SREC := $(IPL_OUT)/rcar/${BUILD}/bl31.srec
 $(BL31_SREC): android_ipl
 
 LOCAL_MODULE := bl31.srec
