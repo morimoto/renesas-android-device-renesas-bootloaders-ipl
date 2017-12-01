@@ -416,7 +416,7 @@ void rcar_pwrc_clusteroff(uint64_t mpidr)
 	rcar_lock_release();
 }
 
-#if !PMIC_ROHM_BD9571
+#if !PMIC_ROHM_BD9571 || SOFTRESET_FOR_RAMOOPS
 void rcar_pwrc_system_reset(void)
 {
 	mmio_write_32(RCAR_SRESCR, (0x5AA50000U | BIT_SOFTRESET));
