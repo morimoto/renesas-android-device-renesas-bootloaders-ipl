@@ -1,8 +1,28 @@
-IPL_SRC=$(ANDROID_BUILD_TOP)/device/renesas/bootloaders/ipl/
-SA_SRC=$(ANDROID_BUILD_TOP)/device/renesas/bootloaders/ipl/tools/dummy_create
-export IPL_OUT=$(ANDROID_PRODUCT_OUT)/obj/IPL_OBJ
-IPL_DUMMY_OUT=$(ANDROID_PRODUCT_OUT)/obj/IPL_DUMMY_OBJ
-IPL_COMPILE=$(ANDROID_BUILD_TOP)/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-gnu-5.2/bin/aarch64-linux-gnu-
+#
+# Copyright (C) 2011 The Android Open-Source Project
+# Copyright (C) 2018 GlobalLogic
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+# Android build top/root directory
+ANDROID_ROOT 		:= $(shell cd $(OUT_DIR)/target/product/$(TARGET_PRODUCT) && cd ../../../.. && pwd)
+
+IPL_SRC				:= device/renesas/bootloaders/ipl/
+IPL_SA_SRC			:= device/renesas/bootloaders/ipl/tools/dummy_create
+IPL_OUT				:= $(ANDROID_ROOT)/$(PRODUCT_OUT)/obj/IPL_OBJ
+IPL_DUMMY_OUT		:= $(ANDROID_ROOT)/$(PRODUCT_OUT)/obj/IPL_DUMMY_OBJ
+IPL_CROSS_COMPILE	:= $(ANDROID_ROOT)/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-gnu-5.2/bin/aarch64-linux-gnu-
 
 BUILD=release
 USE_MULTIMEDIA=1
@@ -37,33 +57,33 @@ $(IPL_DUMMY_OUT):
 	$(hide) mkdir -p $(IPL_DUMMY_OUT)
 
 iplclean:
-	CROSS_COMPILE=$(IPL_COMPILE) make $(PLATFORM_FLAGS) -C $(IPL_SRC) O=$(IPL_OUT) distclean
+	CROSS_COMPILE=$(IPL_CROSS_COMPILE) make $(PLATFORM_FLAGS) -C $(IPL_SRC) O=$(IPL_OUT) distclean
 
 dummy: $(IPL_OUT)
 	@echo "Building dummy"
-	$(hide) CROSS_COMPILE=$(IPL_COMPILE) make $(PLATFORM_FLAGS) -C $(SA_SRC) O=$(IPL_OUT) clean
-	$(hide) CROSS_COMPILE=$(IPL_COMPILE) make $(PLATFORM_FLAGS) -C $(SA_SRC) O=$(IPL_OUT)
-	$(hide) cp $(SA_SRC)/*.bin $(ANDROID_PRODUCT_OUT)
-	$(hide) cp $(SA_SRC)/*.srec $(ANDROID_PRODUCT_OUT)
+	$(hide) CROSS_COMPILE=$(IPL_CROSS_COMPILE) make $(PLATFORM_FLAGS) -C $(SA_SRC) O=$(IPL_OUT) clean
+	$(hide) CROSS_COMPILE=$(IPL_CROSS_COMPILE) make $(PLATFORM_FLAGS) -C $(SA_SRC) O=$(IPL_OUT)
+	$(hide) cp $(SA_SRC)/*.bin $(ANDROID_ROOT)/$(PRODUCT_OUT)/
+	$(hide) cp $(SA_SRC)/*.srec $(ANDROID_ROOT)/$(PRODUCT_OUT)/
 
 ipl: $(IPL_OUT) dummy
 	@echo "Building ipl"
-	$(hide) CROSS_COMPILE=$(IPL_COMPILE) make $(PLATFORM_FLAGS) -C $(IPL_SRC) O=$(IPL_OUT) distclean
-	$(hide) CROSS_COMPILE=$(IPL_COMPILE) make -e MAKEFLAGS= $(PLATFORM_FLAGS) -C $(IPL_SRC) O=$(IPL_OUT) all
-	$(hide) cp $(IPL_OUT)/rcar/release/*.bin $(ANDROID_PRODUCT_OUT)
-	$(hide) cp $(IPL_OUT)/rcar/release/*.srec $(ANDROID_PRODUCT_OUT)
+	$(hide) CROSS_COMPILE=$(IPL_CROSS_COMPILE) make $(PLATFORM_FLAGS) -C $(IPL_SRC) O=$(IPL_OUT) distclean
+	$(hide) CROSS_COMPILE=$(IPL_CROSS_COMPILE) make -e MAKEFLAGS= $(PLATFORM_FLAGS) -C $(IPL_SRC) O=$(IPL_OUT) all
+	$(hide) cp $(IPL_OUT)/rcar/release/*.bin $(ANDROID_ROOT)/$(PRODUCT_OUT)/
+	$(hide) cp $(IPL_OUT)/rcar/release/*.srec $(ANDROID_ROOT)/$(PRODUCT_OUT)/
 
 android_dummy: $(IPL_DUMMY_OUT)
 	@echo "Building dummy"
 	$(hide) cp -R $(IPL_SRC)/tools/ $(IPL_DUMMY_OUT)
 	$(hide) cp -R $(IPL_SRC)/include/ $(IPL_DUMMY_OUT)
-	$(hide) CROSS_COMPILE=$(IPL_COMPILE) make $(PLATFORM_FLAGS) -C $(IPL_DUMMY_OUT)/tools/dummy_create clean
-	$(hide) CROSS_COMPILE=$(IPL_COMPILE) make CPPFLAGS="-D=AARCH64" $(PLATFORM_FLAGS) -C $(IPL_DUMMY_OUT)/tools/dummy_create
+	$(hide) CROSS_COMPILE=$(IPL_CROSS_COMPILE) make $(PLATFORM_FLAGS) -C $(IPL_DUMMY_OUT)/tools/dummy_create clean
+	$(hide) CROSS_COMPILE=$(IPL_CROSS_COMPILE) make CPPFLAGS="-D=AARCH64" $(PLATFORM_FLAGS) -C $(IPL_DUMMY_OUT)/tools/dummy_create
 
 android_ipl: $(IPL_OUT)
 	@echo "Building ipl"
-	$(hide) CROSS_COMPILE=$(IPL_COMPILE) make IPL_OUT=$(IPL_OUT) RCAR_DRAM_SPLIT=$(RCAR_DRAM_SPLIT) RCAR_LOSSY_ENABLE=$(RCAR_LOSSY_ENABLE) $(PLATFORM_FLAGS) -C $(IPL_SRC) distclean
-	$(hide) CROSS_COMPILE=$(IPL_COMPILE) make IPL_OUT=$(IPL_OUT) RCAR_DRAM_SPLIT=$(RCAR_DRAM_SPLIT) RCAR_LOSSY_ENABLE=$(RCAR_LOSSY_ENABLE) -e MAKEFLAGS= $(PLATFORM_FLAGS) -C $(IPL_SRC) all
+	$(hide) CROSS_COMPILE=$(IPL_CROSS_COMPILE) make IPL_OUT=$(IPL_OUT) RCAR_DRAM_SPLIT=$(RCAR_DRAM_SPLIT) RCAR_LOSSY_ENABLE=$(RCAR_LOSSY_ENABLE) $(PLATFORM_FLAGS) -C $(IPL_SRC) distclean
+	$(hide) CROSS_COMPILE=$(IPL_CROSS_COMPILE) make IPL_OUT=$(IPL_OUT) RCAR_DRAM_SPLIT=$(RCAR_DRAM_SPLIT) RCAR_LOSSY_ENABLE=$(RCAR_LOSSY_ENABLE) -e MAKEFLAGS= $(PLATFORM_FLAGS) -C $(IPL_SRC) all
 
 .PHONY: ipl iplclean dummy
 
@@ -75,7 +95,7 @@ $(BOOTPARAM_SA0_BIN_PATH): android_dummy
 
 LOCAL_MODULE := bootparam_sa0.bin
 LOCAL_PREBUILT_MODULE_FILE:= $(BOOTPARAM_SA0_BIN_PATH)
-LOCAL_MODULE_PATH := $(ANDROID_PRODUCT_OUT)
+LOCAL_MODULE_PATH := $(ANDROID_ROOT)/$(PRODUCT_OUT)/
 
 include $(BUILD_EXECUTABLE)
 
@@ -87,7 +107,7 @@ $(BOOTPARAM_SA0_SREC_PATH): android_dummy
 
 LOCAL_MODULE := bootparam_sa0.srec
 LOCAL_PREBUILT_MODULE_FILE:= $(BOOTPARAM_SA0_SREC_PATH)
-LOCAL_MODULE_PATH := $(ANDROID_PRODUCT_OUT)
+LOCAL_MODULE_PATH := $(ANDROID_ROOT)/$(PRODUCT_OUT)/
 
 include $(BUILD_EXECUTABLE)
 
@@ -99,7 +119,7 @@ $(CERT_HEADER_SA6_BIN_PATH): android_dummy
 
 LOCAL_MODULE := cert_header_sa6.bin
 LOCAL_PREBUILT_MODULE_FILE:= $(CERT_HEADER_SA6_BIN_PATH)
-LOCAL_MODULE_PATH := $(ANDROID_PRODUCT_OUT)
+LOCAL_MODULE_PATH := $(ANDROID_ROOT)/$(PRODUCT_OUT)/
 
 include $(BUILD_EXECUTABLE)
 
@@ -111,7 +131,7 @@ $(CERT_HEADER_SA6_SREC_PATH): android_dummy
 
 LOCAL_MODULE := cert_header_sa6.srec
 LOCAL_PREBUILT_MODULE_FILE:= $(CERT_HEADER_SA6_SREC_PATH)
-LOCAL_MODULE_PATH := $(ANDROID_PRODUCT_OUT)
+LOCAL_MODULE_PATH := $(ANDROID_ROOT)/$(PRODUCT_OUT)/
 
 include $(BUILD_EXECUTABLE)
 
@@ -123,7 +143,7 @@ $(BL2_BIN): android_ipl
 
 LOCAL_MODULE := bl2.bin
 LOCAL_PREBUILT_MODULE_FILE:= $(BL2_BIN)
-LOCAL_MODULE_PATH := $(ANDROID_PRODUCT_OUT)
+LOCAL_MODULE_PATH := $(ANDROID_ROOT)/$(PRODUCT_OUT)/
 
 include $(BUILD_EXECUTABLE)
 
@@ -135,7 +155,7 @@ $(BL2_SREC): android_ipl
 
 LOCAL_MODULE := bl2.srec
 LOCAL_PREBUILT_MODULE_FILE:= $(BL2_SREC)
-LOCAL_MODULE_PATH := $(ANDROID_PRODUCT_OUT)
+LOCAL_MODULE_PATH := $(ANDROID_ROOT)/$(PRODUCT_OUT)/
 
 include $(BUILD_EXECUTABLE)
 
@@ -147,7 +167,7 @@ $(BL31_BIN): android_ipl
 
 LOCAL_MODULE := bl31.bin
 LOCAL_PREBUILT_MODULE_FILE:= $(BL31_BIN)
-LOCAL_MODULE_PATH := $(ANDROID_PRODUCT_OUT)
+LOCAL_MODULE_PATH := $(ANDROID_ROOT)/$(PRODUCT_OUT)/
 
 include $(BUILD_EXECUTABLE)
 
@@ -159,6 +179,6 @@ $(BL31_SREC): android_ipl
 
 LOCAL_MODULE := bl31.srec
 LOCAL_PREBUILT_MODULE_FILE:= $(BL31_SREC)
-LOCAL_MODULE_PATH := $(ANDROID_PRODUCT_OUT)
+LOCAL_MODULE_PATH := $(ANDROID_ROOT)/$(PRODUCT_OUT)/
 
 include $(BUILD_EXECUTABLE)
