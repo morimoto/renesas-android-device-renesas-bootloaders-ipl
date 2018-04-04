@@ -22,7 +22,7 @@ IPL_SRC				:= device/renesas/bootloaders/ipl/
 IPL_SA_SRC			:= device/renesas/bootloaders/ipl/tools/dummy_create
 IPL_OUT				:= $(ANDROID_ROOT)/$(PRODUCT_OUT)/obj/IPL_OBJ
 IPL_DUMMY_OUT		:= $(ANDROID_ROOT)/$(PRODUCT_OUT)/obj/IPL_DUMMY_OBJ
-IPL_CROSS_COMPILE	:= $(ANDROID_ROOT)/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-gnu-5.2/bin/aarch64-linux-gnu-
+IPL_CROSS_COMPILE	:= $(ANDROID_ROOT)/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-gnu-7.2.1/bin/aarch64-linux-gnu-
 
 BUILD=release
 USE_MULTIMEDIA=1
