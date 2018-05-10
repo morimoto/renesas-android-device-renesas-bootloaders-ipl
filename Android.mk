@@ -15,14 +15,14 @@
 # limitations under the License.
 #
 
-# Android build top/root directory
-ANDROID_ROOT 		:= $(shell cd $(OUT_DIR)/target/product/$(TARGET_PRODUCT) && cd ../../../.. && pwd)
+PRODUCT_OUT_ABS := $(abspath $(PRODUCT_OUT))
 
-IPL_SRC				:= device/renesas/bootloaders/ipl/
-IPL_SA_SRC			:= device/renesas/bootloaders/ipl/tools/dummy_create
-IPL_OUT				:= $(ANDROID_ROOT)/$(PRODUCT_OUT)/obj/IPL_OBJ
-IPL_DUMMY_OUT		:= $(ANDROID_ROOT)/$(PRODUCT_OUT)/obj/IPL_DUMMY_OBJ
-IPL_CROSS_COMPILE	:= $(ANDROID_ROOT)/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-gnu-7.1.1/bin/aarch64-linux-gnu-
+IPL_SRC       := $(abspath ./device/renesas/bootloaders/ipl/)
+IPL_SA_SRC    := $(abspath ./device/renesas/bootloaders/ipl/tools/dummy_create)
+IPL_OUT       := $(PRODUCT_OUT_ABS)/obj/IPL_OBJ
+IPL_DUMMY_OUT := $(PRODUCT_OUT_ABS)/obj/IPL_DUMMY_OBJ
+
+IPL_CROSS_COMPILE := $(abspath ./prebuilts/gcc/linux-x86/aarch64/aarch64-linux-gnu-7.1.1/bin/aarch64-linux-gnu-)
 
 BUILD=release
 USE_MULTIMEDIA=1
@@ -63,15 +63,15 @@ dummy: $(IPL_OUT)
 	@echo "Building dummy"
 	$(hide) CROSS_COMPILE=$(IPL_CROSS_COMPILE) make $(PLATFORM_FLAGS) -C $(SA_SRC) O=$(IPL_OUT) clean
 	$(hide) CROSS_COMPILE=$(IPL_CROSS_COMPILE) make $(PLATFORM_FLAGS) -C $(SA_SRC) O=$(IPL_OUT)
-	$(hide) cp $(SA_SRC)/*.bin $(ANDROID_ROOT)/$(PRODUCT_OUT)/
-	$(hide) cp $(SA_SRC)/*.srec $(ANDROID_ROOT)/$(PRODUCT_OUT)/
+	$(hide) cp $(SA_SRC)/*.bin $(PRODUCT_OUT_ABS)/
+	$(hide) cp $(SA_SRC)/*.srec $(PRODUCT_OUT_ABS)/
 
 ipl: $(IPL_OUT) dummy
 	@echo "Building ipl"
 	$(hide) CROSS_COMPILE=$(IPL_CROSS_COMPILE) make $(PLATFORM_FLAGS) -C $(IPL_SRC) O=$(IPL_OUT) distclean
 	$(hide) CROSS_COMPILE=$(IPL_CROSS_COMPILE) make -e MAKEFLAGS= $(PLATFORM_FLAGS) -C $(IPL_SRC) O=$(IPL_OUT) all
-	$(hide) cp $(IPL_OUT)/rcar/release/*.bin $(ANDROID_ROOT)/$(PRODUCT_OUT)/
-	$(hide) cp $(IPL_OUT)/rcar/release/*.srec $(ANDROID_ROOT)/$(PRODUCT_OUT)/
+	$(hide) cp $(IPL_OUT)/rcar/release/*.bin $(PRODUCT_OUT_ABS)/
+	$(hide) cp $(IPL_OUT)/rcar/release/*.srec $(PRODUCT_OUT_ABS)/
 
 android_dummy: $(IPL_DUMMY_OUT)
 	@echo "Building dummy"
@@ -95,7 +95,7 @@ $(BOOTPARAM_SA0_BIN_PATH): android_dummy
 
 LOCAL_MODULE := bootparam_sa0.bin
 LOCAL_PREBUILT_MODULE_FILE:= $(BOOTPARAM_SA0_BIN_PATH)
-LOCAL_MODULE_PATH := $(ANDROID_ROOT)/$(PRODUCT_OUT)/
+LOCAL_MODULE_PATH := $(PRODUCT_OUT_ABS)/
 
 include $(BUILD_EXECUTABLE)
 
@@ -107,7 +107,7 @@ $(BOOTPARAM_SA0_SREC_PATH): android_dummy
 
 LOCAL_MODULE := bootparam_sa0.srec
 LOCAL_PREBUILT_MODULE_FILE:= $(BOOTPARAM_SA0_SREC_PATH)
-LOCAL_MODULE_PATH := $(ANDROID_ROOT)/$(PRODUCT_OUT)/
+LOCAL_MODULE_PATH := $(PRODUCT_OUT_ABS)/
 
 include $(BUILD_EXECUTABLE)
 
@@ -119,7 +119,7 @@ $(CERT_HEADER_SA6_BIN_PATH): android_dummy
 
 LOCAL_MODULE := cert_header_sa6.bin
 LOCAL_PREBUILT_MODULE_FILE:= $(CERT_HEADER_SA6_BIN_PATH)
-LOCAL_MODULE_PATH := $(ANDROID_ROOT)/$(PRODUCT_OUT)/
+LOCAL_MODULE_PATH := $(PRODUCT_OUT_ABS)/
 
 include $(BUILD_EXECUTABLE)
 
@@ -131,7 +131,7 @@ $(CERT_HEADER_SA6_SREC_PATH): android_dummy
 
 LOCAL_MODULE := cert_header_sa6.srec
 LOCAL_PREBUILT_MODULE_FILE:= $(CERT_HEADER_SA6_SREC_PATH)
-LOCAL_MODULE_PATH := $(ANDROID_ROOT)/$(PRODUCT_OUT)/
+LOCAL_MODULE_PATH := $(PRODUCT_OUT_ABS)/
 
 include $(BUILD_EXECUTABLE)
 
@@ -143,7 +143,7 @@ $(BL2_BIN): android_ipl
 
 LOCAL_MODULE := bl2.bin
 LOCAL_PREBUILT_MODULE_FILE:= $(BL2_BIN)
-LOCAL_MODULE_PATH := $(ANDROID_ROOT)/$(PRODUCT_OUT)/
+LOCAL_MODULE_PATH := $(PRODUCT_OUT_ABS)/
 
 include $(BUILD_EXECUTABLE)
 
@@ -155,7 +155,7 @@ $(BL2_SREC): android_ipl
 
 LOCAL_MODULE := bl2.srec
 LOCAL_PREBUILT_MODULE_FILE:= $(BL2_SREC)
-LOCAL_MODULE_PATH := $(ANDROID_ROOT)/$(PRODUCT_OUT)/
+LOCAL_MODULE_PATH := $(PRODUCT_OUT_ABS)/
 
 include $(BUILD_EXECUTABLE)
 
@@ -167,7 +167,7 @@ $(BL31_BIN): android_ipl
 
 LOCAL_MODULE := bl31.bin
 LOCAL_PREBUILT_MODULE_FILE:= $(BL31_BIN)
-LOCAL_MODULE_PATH := $(ANDROID_ROOT)/$(PRODUCT_OUT)/
+LOCAL_MODULE_PATH := $(PRODUCT_OUT_ABS)/
 
 include $(BUILD_EXECUTABLE)
 
@@ -179,6 +179,6 @@ $(BL31_SREC): android_ipl
 
 LOCAL_MODULE := bl31.srec
 LOCAL_PREBUILT_MODULE_FILE:= $(BL31_SREC)
-LOCAL_MODULE_PATH := $(ANDROID_ROOT)/$(PRODUCT_OUT)/
+LOCAL_MODULE_PATH := $(PRODUCT_OUT_ABS)/
 
 include $(BUILD_EXECUTABLE)
