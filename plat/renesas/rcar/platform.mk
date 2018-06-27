@@ -217,6 +217,18 @@ else
   $(eval $(call add_define,RCAR_LSI))
 endif
 
+# Boot from eMMC bl31-33
+ifndef RCAR_BOOT_EMMC
+RCAR_BOOT_EMMC := 1
+else
+ifeq (${RCAR_BOOT_EMMC},1)
+RCAR_BOOT_EMMC := 1
+else
+RCAR_BOOT_EMMC := 0
+endif
+endif
+$(eval $(call add_define,RCAR_BOOT_EMMC))
+
 # Process RCAR_SECURE_BOOT flag
 ifndef RCAR_SECURE_BOOT
 RCAR_SECURE_BOOT := 1

@@ -444,6 +444,10 @@ static void rcar_bl2_early_platform_setup(const meminfo_t *mem_layout)
 	const char *unknown         = "unknown";
 
 	modemr = mmio_read_32(RCAR_MODEMR);
+#if (RCAR_BOOT_EMMC == 1)
+	modemr &= ~MODEMR_BOOT_DEV_MASK;
+	modemr |= MODEMR_BOOT_DEV_EMMC_50X8;
+#endif
 	modemr_boot_dev = modemr & MODEMR_BOOT_DEV_MASK;
 	modemr &= MODEMR_BOOT_CPU_MASK;
 
