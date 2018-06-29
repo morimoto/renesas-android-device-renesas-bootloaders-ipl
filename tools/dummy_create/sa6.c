@@ -56,13 +56,13 @@
 /* Source partition on eMMC for BL31 */
 #define RCAR_BL31_PARTITION		(0x00000001U)
 /* Source address on eMMC for BL32 */
-#define RCAR_BL32SRC_ADDRESS		(0x00200000U)
+#define RCAR_BL32SRC_ADDRESS		(0x000A0000U)
 /* Source partition on eMMC for BL32 */
 #define RCAR_BL32_PARTITION		(0x00000001U)
 /* Source address on eMMC for BL33 */
-#define RCAR_BL33SRC_ADDRESS		(0x00000000U)
+#define RCAR_BL33SRC_ADDRESS		(0x00100000U)
 /* Source partition on eMMC for BL33 */
-#define RCAR_BL33_PARTITION		(0x00000002U)
+#define RCAR_BL33_PARTITION		(0x00000001U)
 /* Reserved */
 #define RCAR_BL332SRC_ADDRESS		(0x00000000U)
 #define RCAR_BL332_PARTITION		(0x00000000U)

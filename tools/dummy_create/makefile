@@ -45,7 +45,7 @@ $(eval $(call add_define,RCAR_SA0_SIZE))
 
 # Process RCAR_SA6_TYPE flag
 ifndef RCAR_SA6_TYPE
-RCAR_SA6_TYPE := 0
+RCAR_SA6_TYPE := 1
 else
 ifeq (${RCAR_SA6_TYPE},0)
 RCAR_SA6_TYPE := 0
