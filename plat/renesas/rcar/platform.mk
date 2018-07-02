@@ -9,6 +9,7 @@
 # Process flags
 
 PLAT_INCLUDES		:=	-Iinclude/common/tbbr				\
+				-Iinclude/drivers/partition/			\
 				-Iplat/renesas/rcar/drivers/iic_dvfs/		\
 				-Iplat/renesas/rcar/drivers/board/		\
 				-Iplat/renesas/rcar/drivers/memdrv/		\
@@ -32,6 +33,7 @@ BL2_SOURCES		+=	${RCAR_GIC_SOURCES}				\
 				plat/renesas/rcar/drivers/timer/bl2_swdt.c	\
 				plat/renesas/rcar/drivers/error/bl2_int_error.c	\
 				plat/renesas/rcar/aarch64/rcar_helpers.S	\
+				plat/renesas/rcar/bl2_avb_ab_flow.c		\
 				plat/renesas/rcar/bl2_rcar_setup.c		\
 				plat/renesas/rcar/aarch64/rcar_common.c		\
 				plat/renesas/rcar/aarch64/rcar_drivers_common.c	\
@@ -43,6 +45,7 @@ BL2_SOURCES		+=	${RCAR_GIC_SOURCES}				\
 				plat/renesas/rcar/drivers/auth/rcarboot.c	\
 				plat/renesas/rcar/rcar_io_storage.c		\
 				drivers/io/io_storage.c				\
+				drivers/partition/gpt.c				\
 				plat/renesas/rcar/drivers/rpc/rpc_driver.c	\
 				plat/renesas/rcar/drivers/dma/dma_driver.c	\
 				plat/renesas/rcar/drivers/avs/avs_driver.c	\
@@ -53,6 +56,7 @@ BL2_SOURCES		+=	${RCAR_GIC_SOURCES}				\
 				plat/renesas/rcar/drivers/emmc/emmc_init.c	\
 				plat/renesas/rcar/drivers/emmc/emmc_mount.c	\
 				plat/renesas/rcar/drivers/emmc/emmc_read.c	\
+				plat/renesas/rcar/drivers/emmc/emmc_write.c	\
 				plat/renesas/rcar/drivers/rom/rom_api.c		\
 				plat/renesas/rcar/drivers/board/board.c		\
 				plat/renesas/rcar/bl2_secure_setting.c		\

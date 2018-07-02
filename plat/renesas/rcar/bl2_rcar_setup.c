@@ -36,6 +36,9 @@
 #if PMIC_ROHM_BD9571 && RCAR_SYSTEM_RESET_KEEPON_DDR
 #include "iic_dvfs.h"
 #endif /* PMIC_ROHM_BD9571 && RCAR_SYSTEM_RESET_KEEPON_DDR */
+#if (RCAR_BOOT_EMMC == 1)
+#include "bl2_avb_ab_flow.h"
+#endif
 
 #if (RCAR_DRAM_LPDDR4_MEMCONF == 3)
 #ifdef NOTICE
@@ -765,6 +768,11 @@ static void rcar_bl2_early_platform_setup(const meminfo_t *mem_layout)
 	/* Initialise the IO layer and register platform IO devices */
 	if((modemr_boot_dev == MODEMR_BOOT_DEV_EMMC_25X1) ||
 	   (modemr_boot_dev == MODEMR_BOOT_DEV_EMMC_50X8)) {
+#if (RCAR_BOOT_EMMC == 1)
+		if (avb_ab_flow() != AVB_AB_FLOW_RESULT_OK)
+			rcar_io_setup();
+		else
+#endif
 		rcar_io_emmc_setup();
 	} else {
 		rcar_io_setup();
