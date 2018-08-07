@@ -129,7 +129,14 @@ static void dbsc_setting(void)
 
 void qos_init_h3_v20(void)
 {
+	unsigned int split_area;
 	dbsc_setting();
+
+#if RCAR_DRAM_LPDDR4_MEMCONF == 0  /* 1GB */
+	split_area = 0x1BU;
+#else                              /* default 2GB */
+	split_area = 0x1CU;
+#endif
 
 	/* DRAM Split Address mapping */
 #if (RCAR_DRAM_SPLIT == RCAR_DRAM_SPLIT_4CH) || \
@@ -137,21 +144,22 @@ void qos_init_h3_v20(void)
 	NOTICE("BL2: DRAM Split is 4ch\n");
 	io_write_32(AXI_ADSPLCR0, ADSPLCR0_ADRMODE_DEFAULT
 				  | ADSPLCR0_SPLITSEL(0xFFU)
-				  | ADSPLCR0_AREA(0x1BU)
+				  | ADSPLCR0_AREA(split_area)
 				  | ADSPLCR0_SWP);
 	io_write_32(AXI_ADSPLCR1, 0x00000000U);
 	io_write_32(AXI_ADSPLCR2, 0x00001054U);
 	io_write_32(AXI_ADSPLCR3, 0x00000000U);
 #elif RCAR_DRAM_SPLIT == RCAR_DRAM_SPLIT_2CH
 	NOTICE("BL2: DRAM Split is 2ch\n");
-	io_write_32(AXI_ADSPLCR0, 0x00000000U);
+	io_write_32(AXI_ADSPLCR0, ADSPLCR0_AREA(split_area));
 	io_write_32(AXI_ADSPLCR1, ADSPLCR0_ADRMODE_DEFAULT
 				  | ADSPLCR0_SPLITSEL(0xFFU)
-				  | ADSPLCR0_AREA(0x1BU)
+				  | ADSPLCR0_AREA(split_area)
 				  | ADSPLCR0_SWP);
 	io_write_32(AXI_ADSPLCR2, 0x00001004U);
 	io_write_32(AXI_ADSPLCR3, 0x00000000U);
 #else
+	io_write_32(AXI_ADSPLCR0, ADSPLCR0_AREA(split_area));
 	NOTICE("BL2: DRAM Split is OFF\n");
 #endif
 

@@ -642,9 +642,9 @@ static void rcar_bl2_early_platform_setup(const meminfo_t *mem_layout)
 
 	/* DDR 4GB/8GB memory config log */
 	reg = mmio_read_32(RCAR_PRR);
-	/* Later than H3 Ver.3.0 */
+	/* Later than H3 Ver.2.0 */
 	if (((reg & RCAR_PRODUCT_MASK) == RCAR_PRODUCT_H3) &&
-		((reg & RCAR_CUT_MASK) >= RCAR_CUT_VER30)) {
+		((reg & RCAR_CUT_MASK) >= RCAR_CUT_VER20)) {
 #if (RCAR_DRAM_LPDDR4_MEMCONF == 0)
 		/* 4GB(1GBx4) */
 		NOTICE("BL2: CH0: 0x400000000 - 0x43fffffff, 1 GiB\n");
