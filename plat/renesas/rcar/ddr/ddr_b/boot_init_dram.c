@@ -10,6 +10,8 @@
 #include <mmio.h>
 #include <debug.h>
 #include "ddr_regdef.h"
+#include "rcar_def.h"
+#include "qos_init.h"
 #include "init_dram_tbl_h3.h"
 #include "init_dram_tbl_m3.h"
 #include "init_dram_tbl_h3ver2.h"
@@ -21,6 +23,18 @@
 
 #define DDR_BACKUPMODE
 #define FATAL_MSG(x) NOTICE(x)
+
+#if (RCAR_DRAM_LPDDR4_MEMCONF == 3)
+#ifdef NOTICE
+#undef NOTICE
+#endif
+
+#if (LOG_LEVEL >= LOG_LEVEL_NOTICE)
+# define NOTICE(...)   if (*((uint64_t *)RCAR_SRAM_STASH) != RCAR_SRAM_NICK) { tf_printf("NOTICE:  " __VA_ARGS__); }
+#else
+# define NOTICE(...)
+#endif
+#endif	// RCAR_DRAM_LPDDR4_MEMCONF == 3
 
 /*******************************************************************************
  *	variables
@@ -4021,6 +4035,9 @@ int32_t InitDram(void)
 	else
 		failcount = 1;
 
+	if (failcount)
+		NOTICE("\n");
+
 	foreach_vch(ch)
 		mmio_write_32(DBSC_DBPDLK(ch), 0x00000000);
 	if (((Prr_Product == PRR_PRODUCT_H3) && (Prr_Cut <= PRR_PRODUCT_11))
@@ -4030,10 +4047,34 @@ int32_t InitDram(void)
 		mmio_write_32(DBSC_DBSYSCNT0, 0x00000000);
 	}
 
-	if (failcount == 0)
+	if(failcount==0) {
+#if (RCAR_DRAM_LPDDR4_MEMCONF == 3)
+		if (*((uint64_t *)RCAR_SRAM_STASH) == RCAR_SRAM_NICK)
+			*((uint64_t *)RCAR_SRAM_STASH) = 0;
+		if (_cnf_BOARDTYPE == 7) {
+			/* 4GB(1GBx4) */
+			NOTICE("BL2: CH0: 0x400000000 - 0x440000000, 1 GiB\n");
+			NOTICE("BL2: CH1: 0x500000000 - 0x540000000, 1 GiB\n");
+			NOTICE("BL2: CH2: 0x600000000 - 0x640000000, 1 GiB\n");
+			NOTICE("BL2: CH3: 0x700000000 - 0x740000000, 1 GiB\n");
+		} else if (_cnf_BOARDTYPE == 8) {
+			/* 8GB(2GBx4: default) */
+			NOTICE("BL2: CH0: 0x400000000 - 0x480000000, 2 GiB\n");
+			NOTICE("BL2: CH1: 0x500000000 - 0x580000000, 2 GiB\n");
+			NOTICE("BL2: CH2: 0x600000000 - 0x680000000, 2 GiB\n");
+			NOTICE("BL2: CH3: 0x700000000 - 0x780000000, 2 GiB\n");
+		}
+#endif
+		/* initialize QoS configration */
+		qos_init(_cnf_BOARDTYPE);
 		return INITDRAM_OK;
-	else
+	} else {
+#if (RCAR_DRAM_LPDDR4_MEMCONF == 3)
+		if (_cnf_BOARDTYPE == 8)
+			*((uint64_t *)RCAR_SRAM_STASH) = RCAR_SRAM_NICK;
+#endif
 		return INITDRAM_NG;
+	}
 }
 
 void pvtcode_update(void)
