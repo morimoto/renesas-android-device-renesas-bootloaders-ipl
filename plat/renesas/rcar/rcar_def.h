@@ -286,4 +286,15 @@
 #define	EXTAL_SALVATOR_XS	U(8320000)	/* When board is Salvator-XS */
 #define EXTAL_EBISU		U(24000000)	/* When board is Ebisu */
 
+/*******************************************************************************
+ * CPU Auxiliary Control Register specific definitions.
+ ******************************************************************************/
+
+#define RCAR_CA57_DIS_LOAD_PASS_STORE	(ULL(1) << 55)
+
+#if (RCAR_DRAM_LPDDR4_MEMCONF == 3)
+#define	RCAR_SRAM_STASH		ULL(0xe635ff00)
+#define	RCAR_SRAM_NICK		ULL(0xf0a5f0a5f0a5f0a5)
+#endif
+
 #endif /* RCAR_DEF_H__ */

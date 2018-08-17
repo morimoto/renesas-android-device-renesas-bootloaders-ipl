@@ -24,7 +24,6 @@
 #include <debug.h>
 #include <mmio.h>
 #include "boot_init_dram.h"
-#include "qos_init.h"
 #include "rcar_version.h"
 #include "bl2_swdt.h"
 #include "avs_driver.h"
@@ -38,6 +37,17 @@
 #include "iic_dvfs.h"
 #endif /* PMIC_ROHM_BD9571 && RCAR_SYSTEM_RESET_KEEPON_DDR */
 
+#if (RCAR_DRAM_LPDDR4_MEMCONF == 3)
+#ifdef NOTICE
+#undef NOTICE
+#endif
+
+#if (LOG_LEVEL >= LOG_LEVEL_NOTICE)
+# define NOTICE(...)	if (*((uint64_t *)RCAR_SRAM_STASH) != RCAR_SRAM_NICK) { tf_printf("NOTICE:  " __VA_ARGS__); }
+#else
+# define NOTICE(...)
+#endif
+#endif	// RCAR_DRAM_LPDDR4_MEMCONF == 3
 
 /* CPG write protect registers */
 /*#define	CPG_CPGWPR		(CPG_BASE + 0x900U)*/
@@ -655,13 +665,14 @@ static void rcar_bl2_early_platform_setup(const meminfo_t *mem_layout)
 		/* Initialize SDRAM */
 		ret = InitDram();
 		if (ret != 0) {
+#if (RCAR_DRAM_LPDDR4_MEMCONF == 3)
+			if (*((uint64_t *)RCAR_SRAM_STASH) == RCAR_SRAM_NICK)
+				mmio_write_32(RCAR_SRESCR, (0x5AA50000U | ((uint32_t)1U<<15)));
+#endif
 			NOTICE("BL2: Failed to DRAM initialize (%d).\n", ret);
 			/* Infinite loop */
 			panic();
 		}
-
-		/* initialize QoS configration */
-		qos_init();
 	}
 
 	if ((modemr_boot_dev == MODEMR_BOOT_DEV_EMMC_25X1) ||

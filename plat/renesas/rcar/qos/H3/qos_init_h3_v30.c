@@ -128,21 +128,23 @@ static void dbsc_setting(void)
 	io_write_32(DBSC_DBSYSCNT0, 0x00000000U);
 }
 
-void qos_init_h3_v30(void)
+void qos_init_h3_v30(uint32_t board_type)
 {
-	unsigned int split_area;
-
+	unsigned int split_area = 0x1CU;
 	dbsc_setting();
 
-#if RCAR_DRAM_LPDDR4_MEMCONF == 0  /* 1GB */
-	split_area = 0x1BU;
-#else                              /* default 2GB */
-	split_area = 0x1CU;
-#endif
+	if (board_type == 7)
+		split_area = 0x1BU;
+	else if (board_type == 8)                             /* default 2GB */
+		split_area = 0x1CU;
+	else {
+		ERROR("QOS init: unknown board type.");
+		panic();
+	}
 
 	/* DRAM Split Address mapping */
 #if (RCAR_DRAM_SPLIT == RCAR_DRAM_SPLIT_4CH) || \
-	(RCAR_DRAM_SPLIT == RCAR_DRAM_SPLIT_AUTO)
+    (RCAR_DRAM_SPLIT == RCAR_DRAM_SPLIT_AUTO)
 	NOTICE("BL2: DRAM Split is 4ch(DDR %x)\n", (int)qos_init_ddr_phyvalid);
 
 	io_write_32(AXI_ADSPLCR0, ADSPLCR0_ADRMODE_DEFAULT

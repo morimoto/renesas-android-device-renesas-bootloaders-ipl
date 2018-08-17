@@ -7,6 +7,6 @@
 #ifndef QOS_INIT_H_H3_V20__
 #define QOS_INIT_H_H3_V20__
 
-void qos_init_h3_v20(void);
+void qos_init_h3_v20(uint32_t);
 
 #endif	/* QOS_INIT_H_H3_V20__ */

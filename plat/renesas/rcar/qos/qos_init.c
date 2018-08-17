@@ -73,7 +73,7 @@ uint8_t  qos_init_ddr_phyvalid;
 				panic();\
 				} while (0)
 
-void qos_init(void)
+void qos_init(uint32_t board_type)
 {
 	uint32_t reg;
 #if !(RCAR_LSI == RCAR_E3)
@@ -100,11 +100,11 @@ void qos_init(void)
 			qos_init_h3_v11();
 			break;
 		case PRR_PRODUCT_20:
-			qos_init_h3_v20();
+			qos_init_h3_v20(board_type);
 			break;
 		case PRR_PRODUCT_30:
 		default:
-			qos_init_h3_v30();
+			qos_init_h3_v30(board_type);
 			break;
 		}
  #elif (RCAR_LSI == RCAR_H3N)
@@ -187,14 +187,14 @@ void qos_init(void)
 			!= (reg & (PRR_PRODUCT_MASK | PRR_CUT_MASK))) {
 		PRR_PRODUCT_ERR(reg);
 	}
-	qos_init_h3_v20();
+	qos_init_h3_v20(board_type);
   #else
 	/* H3 Cut 30 or later */
 	if ((PRR_PRODUCT_H3)
 			!= (reg & (PRR_PRODUCT_MASK))) {
 		PRR_PRODUCT_ERR(reg);
 	}
-	qos_init_h3_v30();
+	qos_init_h3_v30(board_type);
   #endif
  #elif RCAR_LSI == RCAR_H3N	/* H3 */
 	/* H3N Cut 30 or later */
