@@ -167,6 +167,10 @@
 static uint32_t isDdrBackupMode(void);
 static void bl2_init_generic_timer(void);
 
+/* Board memory model detected at time InitDram function call.
+ * Defined at plat/renesas/rcar/ddr/ddr_b/boot_init_dram.c */
+extern uint32_t _cnf_BOARDTYPE;
+
 /*
  * The next 2 constants identify the extents of the code & RO data region.
  * These addresses are used by the MMU setup code and therefore they must be
@@ -1004,6 +1008,7 @@ void bl2_plat_set_bl33_ep_info(struct image_info *image,
 {
 	SET_SECURITY_STATE(ep->h.attr, NON_SECURE);
 	ep->spsr = rcar_get_spsr_for_bl33_entry();
+	ep->args.arg1 = _cnf_BOARDTYPE;
 #ifdef RCAR_BL33_ARG0
 	ep->args.arg0 = RCAR_BL33_ARG0;
 #endif
