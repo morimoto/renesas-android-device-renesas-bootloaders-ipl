@@ -22,7 +22,7 @@ IPL_SA_SRC    := $(abspath ./device/renesas/bootloaders/ipl/tools/dummy_create)
 IPL_OUT       := $(PRODUCT_OUT_ABS)/obj/IPL_OBJ
 IPL_DUMMY_OUT := $(PRODUCT_OUT_ABS)/obj/IPL_DUMMY_OBJ
 
-IPL_CROSS_COMPILE := $(abspath ./prebuilts/gcc/linux-x86/aarch64/aarch64-linux-gnu-7.1.1/bin/aarch64-linux-gnu-)
+IPL_CROSS_COMPILE := $(abspath ./prebuilts/gcc/linux-x86/aarch64/aarch64-linux-gnu/bin/aarch64-linux-gnu-)
 
 BUILD=release
 USE_MULTIMEDIA=1
