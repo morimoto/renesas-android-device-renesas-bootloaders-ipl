@@ -21,7 +21,7 @@ IPL_SRC       := $(abspath ./device/renesas/bootloaders/ipl/)
 IPL_SA_SRC    := $(abspath ./device/renesas/bootloaders/ipl/tools/dummy_create)
 IPL_OUT       := $(PRODUCT_OUT_ABS)/obj/IPL_OBJ
 IPL_DUMMY_OUT := $(PRODUCT_OUT_ABS)/obj/IPL_DUMMY_OBJ
-
+IPL_DUMMY_HF_OUT := $(PRODUCT_OUT_ABS)/obj/IPL_DUMMY_HF_OBJ
 IPL_CROSS_COMPILE := $(abspath ./prebuilts/gcc/linux-x86/aarch64/aarch64-linux-gnu/bin/aarch64-linux-gnu-)
 
 BUILD=release
@@ -70,6 +70,9 @@ $(IPL_OUT):
 $(IPL_DUMMY_OUT):
 	$(hide) mkdir -p $(IPL_DUMMY_OUT)
 
+$(IPL_DUMMY_HF_OUT):
+	$(hide) mkdir -p $(IPL_DUMMY_HF_OUT)
+
 iplclean:
 	CROSS_COMPILE=$(IPL_CROSS_COMPILE) make $(PLATFORM_FLAGS) -C $(IPL_SRC) O=$(IPL_OUT) distclean
 
@@ -94,6 +97,13 @@ android_dummy: $(IPL_DUMMY_OUT)
 	$(hide) CROSS_COMPILE=$(IPL_CROSS_COMPILE) make $(PLATFORM_FLAGS) -C $(IPL_DUMMY_OUT)/tools/dummy_create clean
 	$(hide) CROSS_COMPILE=$(IPL_CROSS_COMPILE) make CPPFLAGS="-D=AARCH64" $(PLATFORM_FLAGS) -C $(IPL_DUMMY_OUT)/tools/dummy_create
 
+android_dummy_hf: $(IPL_DUMMY_HF_OUT)
+	@echo "Building dummy for HyperFlash"
+	$(hide) cp -R $(IPL_SRC)/tools/ $(IPL_DUMMY_HF_OUT)
+	$(hide) cp -R $(IPL_SRC)/include/ $(IPL_DUMMY_HF_OUT)
+	$(hide) CROSS_COMPILE=$(IPL_CROSS_COMPILE) make $(PLATFORM_FLAGS) -C $(IPL_DUMMY_HF_OUT)/tools/dummy_create clean
+	$(hide) CROSS_COMPILE=$(IPL_CROSS_COMPILE) make CPPFLAGS="-D=AARCH64" $(PLATFORM_FLAGS) RCAR_SA6_TYPE=0 -C $(IPL_DUMMY_HF_OUT)/tools/dummy_create
+
 android_ipl: $(IPL_OUT)
 	@echo "Building ipl"
 	$(hide) CROSS_COMPILE=$(IPL_CROSS_COMPILE) make IPL_OUT=$(IPL_OUT) RCAR_DRAM_SPLIT=$(RCAR_DRAM_SPLIT) RCAR_LOSSY_ENABLE=$(RCAR_LOSSY_ENABLE) $(PLATFORM_FLAGS) -C $(IPL_SRC) distclean
@@ -113,13 +123,24 @@ LOCAL_MODULE_PATH := $(PRODUCT_OUT_ABS)/
 
 include $(BUILD_EXECUTABLE)
 
+include $(CLEAR_VARS)
+
+BOOTPARAM_SA0_HF_BIN_PATH := $(IPL_DUMMY_HF_OUT)/tools/dummy_create/bootparam_sa0.bin
+$(BOOTPARAM_SA0_HF_BIN_PATH): android_dummy_hf
+
+LOCAL_MODULE := bootparam_sa0_hf.bin
+LOCAL_PREBUILT_MODULE_FILE:= $(BOOTPARAM_SA0_HF_BIN_PATH)
+LOCAL_MODULE_PATH := $(PRODUCT_OUT_ABS)/
+
+include $(BUILD_EXECUTABLE)
+
 
 include $(CLEAR_VARS)
 
-BOOTPARAM_SA0_SREC_PATH := $(IPL_DUMMY_OUT)/tools/dummy_create/bootparam_sa0.srec
-$(BOOTPARAM_SA0_SREC_PATH): android_dummy
+BOOTPARAM_SA0_SREC_PATH := $(IPL_DUMMY_HF_OUT)/tools/dummy_create/bootparam_sa0.srec
+$(BOOTPARAM_SA0_SREC_PATH): android_dummy_hf
 
-LOCAL_MODULE := bootparam_sa0.srec
+LOCAL_MODULE := bootparam_sa0_hf.srec
 LOCAL_PREBUILT_MODULE_FILE:= $(BOOTPARAM_SA0_SREC_PATH)
 LOCAL_MODULE_PATH := $(PRODUCT_OUT_ABS)/
 
@@ -137,14 +158,25 @@ LOCAL_MODULE_PATH := $(PRODUCT_OUT_ABS)/
 
 include $(BUILD_EXECUTABLE)
 
+include $(CLEAR_VARS)
+
+CERT_HEADER_SA6_HF_BIN_PATH := $(IPL_DUMMY_HF_OUT)/tools/dummy_create/cert_header_sa6.bin
+$(CERT_HEADER_SA6_HF_BIN_PATH): android_dummy_hf
+
+LOCAL_MODULE := cert_header_sa6_hf.bin
+LOCAL_PREBUILT_MODULE_FILE:= $(CERT_HEADER_SA6_HF_BIN_PATH)
+LOCAL_MODULE_PATH := $(PRODUCT_OUT_ABS)/
+
+include $(BUILD_EXECUTABLE)
+
 
 include $(CLEAR_VARS)
 
-CERT_HEADER_SA6_SREC_PATH := $(IPL_DUMMY_OUT)/tools/dummy_create/cert_header_sa6.srec
-$(CERT_HEADER_SA6_SREC_PATH): android_dummy
+CERT_HEADER_SA6_HF_SREC_PATH := $(IPL_DUMMY_HF_OUT)/tools/dummy_create/cert_header_sa6.srec
+$(CERT_HEADER_SA6_HF_SREC_PATH): android_dummy_hf
 
-LOCAL_MODULE := cert_header_sa6.srec
-LOCAL_PREBUILT_MODULE_FILE:= $(CERT_HEADER_SA6_SREC_PATH)
+LOCAL_MODULE := cert_header_sa6_hf.srec
+LOCAL_PREBUILT_MODULE_FILE:= $(CERT_HEADER_SA6_HF_SREC_PATH)
 LOCAL_MODULE_PATH := $(PRODUCT_OUT_ABS)/
 
 include $(BUILD_EXECUTABLE)
@@ -161,13 +193,25 @@ LOCAL_MODULE_PATH := $(PRODUCT_OUT_ABS)/
 
 include $(BUILD_EXECUTABLE)
 
+include $(CLEAR_VARS)
+
+BL2_BIN := $(IPL_OUT)/rcar/${BUILD}/bl2.bin
+$(BL2_BIN): android_ipl
+
+LOCAL_MODULE := bl2_hf.bin
+LOCAL_PREBUILT_MODULE_FILE:= $(BL2_BIN)
+LOCAL_MODULE_PATH := $(PRODUCT_OUT_ABS)/
+
+include $(BUILD_EXECUTABLE)
+
+
 
 include $(CLEAR_VARS)
 
 BL2_SREC := $(IPL_OUT)/rcar/${BUILD}/bl2.srec
 $(BL2_SREC): android_ipl
 
-LOCAL_MODULE := bl2.srec
+LOCAL_MODULE := bl2_hf.srec
 LOCAL_PREBUILT_MODULE_FILE:= $(BL2_SREC)
 LOCAL_MODULE_PATH := $(PRODUCT_OUT_ABS)/
 
@@ -185,13 +229,24 @@ LOCAL_MODULE_PATH := $(PRODUCT_OUT_ABS)/
 
 include $(BUILD_EXECUTABLE)
 
+include $(CLEAR_VARS)
+
+BL31_BIN := $(IPL_OUT)/rcar/${BUILD}/bl31.bin
+$(BL31_BIN): android_ipl
+
+LOCAL_MODULE := bl31_hf.bin
+LOCAL_PREBUILT_MODULE_FILE:= $(BL31_BIN)
+LOCAL_MODULE_PATH := $(PRODUCT_OUT_ABS)/
+
+include $(BUILD_EXECUTABLE)
+
 
 include $(CLEAR_VARS)
 
 BL31_SREC := $(IPL_OUT)/rcar/${BUILD}/bl31.srec
 $(BL31_SREC): android_ipl
 
-LOCAL_MODULE := bl31.srec
+LOCAL_MODULE := bl31_hf.srec
 LOCAL_PREBUILT_MODULE_FILE:= $(BL31_SREC)
 LOCAL_MODULE_PATH := $(PRODUCT_OUT_ABS)/
 
