@@ -472,19 +472,26 @@ AvbABFlowResult avb_ab_flow(void)
     AvbABData data;
     int slot_to_boot = 0;
     AvbABFlowResult result = AVB_AB_FLOW_RESULT_OK;
+
+    result = avb_ab_read_data(&data);
+    if (result != AVB_AB_FLOW_RESULT_OK)
+        return result;
+
     /*
      *This is preliminary check for boot magic. We should
      *not continue with emmc boot if no emmc IPLs found
      */
     if (check_emmc_header(MMC_BOOT0)) {
-        if (check_emmc_header(MMC_BOOT1)) {
-            return AVB_AB_FLOW_RESULT_ERROR_NO_BOOTABLE_SLOTS;
-        }
+        /*Set slot unbootable*/
+        data.slots[AVB_AB_SLOT_A].priority = 0;
+        data.slots[AVB_AB_SLOT_A].tries_remaining = 0;
+        data.slots[AVB_AB_SLOT_A].successful_boot = 0;
     }
-
-    result = avb_ab_read_data(&data);
-    if (result != AVB_AB_FLOW_RESULT_OK)
-        return result;
+    if (check_emmc_header(MMC_BOOT1)) {
+        data.slots[AVB_AB_SLOT_B].priority = 0;
+        data.slots[AVB_AB_SLOT_B].tries_remaining = 0;
+        data.slots[AVB_AB_SLOT_B].successful_boot = 0;
+    }
 
     result = avb_ab_get_curr_slot(&data, &slot_to_boot);
     if (result != AVB_AB_FLOW_RESULT_OK)
