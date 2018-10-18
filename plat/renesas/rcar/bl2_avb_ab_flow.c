@@ -47,6 +47,32 @@
 #define USE_DMA                 (0x1)
 #define WITHOUT_DMA             (0x0)
 
+#define IPL_EMMC_BOOT_MAGIC "BOOTMMC"
+#define MMC_BOOT0 1
+#define MMC_BOOT1 2
+
+static int check_emmc_header(int partition)
+{
+    uint8_t buf[EMMC_SECTOR_SIZE];
+    int result = 0;
+
+    result = emmc_select_partition(partition);
+    if (result != EMMC_SUCCESS)
+        return -1;
+
+    result = emmc_read_sector((uint32_t *)&buf[0], 0,
+            1, WITHOUT_DMA);
+    if (result != EMMC_SUCCESS) {
+        return -1;
+    }
+
+    if (memcmp(&buf[0], IPL_EMMC_BOOT_MAGIC, sizeof(IPL_EMMC_BOOT_MAGIC))) {
+        ERROR("IPL signature on partition %d incorrect!\n", partition);
+        return -1;
+    }
+    return 0;
+}
+
 static int load_gpt_header(gpt_header_t *header, int partition)
 {
     uint8_t buf[EMMC_SECTOR_SIZE];
@@ -446,6 +472,15 @@ AvbABFlowResult avb_ab_flow(void)
     AvbABData data;
     int slot_to_boot = 0;
     AvbABFlowResult result = AVB_AB_FLOW_RESULT_OK;
+    /*
+     *This is preliminary check for boot magic. We should
+     *not continue with emmc boot if no emmc IPLs found
+     */
+    if (check_emmc_header(MMC_BOOT0)) {
+        if (check_emmc_header(MMC_BOOT1)) {
+            return AVB_AB_FLOW_RESULT_ERROR_NO_BOOTABLE_SLOTS;
+        }
+    }
 
     result = avb_ab_read_data(&data);
     if (result != AVB_AB_FLOW_RESULT_OK)
