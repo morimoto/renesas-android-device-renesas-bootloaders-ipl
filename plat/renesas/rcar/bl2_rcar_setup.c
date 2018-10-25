@@ -595,7 +595,7 @@ static void rcar_bl2_early_platform_setup(const meminfo_t *mem_layout)
 	/* Proceed with separated AVS processing */
 	bl2_avs_setting();
 
-	switch (modemr_boot_dev) {
+	switch (mmio_read_32(RCAR_MODEMR) & MODEMR_BOOT_DEV_MASK) {
 	case MODEMR_BOOT_DEV_HYPERFLASH160:
 		str = boot_hyper160;
 		break;
