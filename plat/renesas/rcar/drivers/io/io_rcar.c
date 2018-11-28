@@ -22,6 +22,9 @@
 #include "io_rcar.h"
 #include "io_common.h"
 #include "io_private.h"
+#if (RCAR_BOOT_EMMC == 1)
+#include "bl2_avb_ab_flow.h"
+#endif
 
 typedef struct {
 	const int32_t	name;
@@ -69,6 +72,7 @@ typedef struct {
 #define RCAR_CERT_LOAD			(1U)
 
 #define RCAR_FLASH_CERT_HEADER	RCAR_GET_FLASH_ADR(6U, 0U)
+#define RCAR_EMMC_CERT_HEADER	(0x00030000U)
 
 #define RCAR_COUNT_LOAD_BL33		(2U)
 #define RCAR_COUNT_LOAD_BL33X		(3U)
@@ -535,9 +539,13 @@ static int32_t rcar_dev_init(io_dev_info_t *dev_info, const uintptr_t init_param
 						rcar_image_header[loop] =
 						rcar_image_header_tmp
 							[loop * 2U + 1U];
+#if (RCAR_BOOT_EMMC == 1)
+						rcar_image_header_prttn[loop] = avb_get_boot_partition_idx();
+#else
 						rcar_image_header_prttn[loop] =
 						rcar_image_header_tmp
 							[loop * 2U + 2U];
+#endif
 					}
 					result = IO_SUCCESS;
 					if ((rcar_image_number == 0U) ||

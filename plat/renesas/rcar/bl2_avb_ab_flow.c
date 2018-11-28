@@ -384,47 +384,6 @@ static AvbABFlowResult avb_ab_read_data(AvbABData *data)
 	return AVB_AB_FLOW_RESULT_OK;
 }
 
-
-#define CERT_SECTOR_ADDR_EMMC addr_to_blk(RCAR_EMMC_CERT_HEADER)
-
-#define CERT_BL31_PART_OFFSET (0x10)
-#define CERT_BL32_PART_OFFSET (0x20)
-#define CERT_BL33_PART_OFFSET (0x30)
-
-static AvbABFlowResult avb_ab_update_cert_for_part(int slot_idx)
-{
-	uint8_t buf[EMMC_SECTOR_SIZE];
-	int result = EMMC_SUCCESS;
-	const uint32_t partition = slot_idx == AVB_AB_SLOT_A ?
-		PARTITION_ID_BOOT_1 : PARTITION_ID_BOOT_2;
-
-	result = emmc_select_partition(partition);
-	if (result != EMMC_SUCCESS) {
-		ERROR("Failed to select %d err = (%d)\n", partition, result);
-		return AVB_AB_FLOW_RESULT_ERROR_IO;
-	}
-
-	result = emmc_read_sector((uint32_t *)&buf[0], CERT_SECTOR_ADDR_EMMC,
-			/*Read blocks */ 1, WITHOUT_DMA);
-	if (result != EMMC_SUCCESS) {
-		ERROR("Failed to read cert header block err = (%d)\n", result);
-		return AVB_AB_FLOW_RESULT_ERROR_IO;
-	}
-
-	memcpy(&buf[0] + CERT_BL31_PART_OFFSET, &partition, sizeof(partition));
-	memcpy(&buf[0] + CERT_BL32_PART_OFFSET, &partition, sizeof(partition));
-	memcpy(&buf[0] + CERT_BL33_PART_OFFSET, &partition, sizeof(partition));
-
-	result = emmc_write_sector((uint32_t *)&buf[0], CERT_SECTOR_ADDR_EMMC,
-			/*Write blocks */ 1, WITHOUT_DMA);
-	if (result != EMMC_SUCCESS) {
-		ERROR("Failed to write cert header block err = (%d)\n", result);
-		return AVB_AB_FLOW_RESULT_ERROR_IO;
-	}
-
-	return AVB_AB_FLOW_RESULT_OK;
-}
-
 static AvbABFlowResult avb_ab_get_curr_slot(const AvbABData *data, int *slot_idx)
 {
 	int slot_a_bootable = 0;
@@ -453,18 +412,21 @@ static AvbABFlowResult avb_ab_get_curr_slot(const AvbABData *data, int *slot_idx
 	return AVB_AB_FLOW_RESULT_OK;
 }
 
+static int32_t boot_partition = 0;
+
 static void avb_ab_set_boot_partition(int slot_idx)
 {
 	if (slot_idx == AVB_AB_SLOT_A) {
 		mmc_drv_obj.partition_access = PARTITION_ID_BOOT_1;
 		mmc_drv_obj.boot_partition_en = PARTITION_ID_BOOT_1;
+		boot_partition = PARTITION_ID_BOOT_1;
 		emmc_select_partition(PARTITION_ID_BOOT_1);
 	} else {
 		mmc_drv_obj.partition_access = PARTITION_ID_BOOT_2;
 		mmc_drv_obj.boot_partition_en = PARTITION_ID_BOOT_2;
+		boot_partition = PARTITION_ID_BOOT_2;
 		emmc_select_partition(PARTITION_ID_BOOT_2);
 	}
-
 }
 
 AvbABFlowResult avb_ab_flow(void)
@@ -522,9 +484,11 @@ AvbABFlowResult avb_ab_flow(void)
 
 select_part:
 	avb_ab_set_boot_partition(slot_to_boot);
-	result = avb_ab_update_cert_for_part(slot_to_boot);
-	if (result != AVB_AB_FLOW_RESULT_OK)
-		return result;
 
 	return AVB_AB_FLOW_RESULT_OK;
+}
+
+int32_t avb_get_boot_partition_idx(void)
+{
+	return boot_partition;
 }
