@@ -42,23 +42,23 @@
 #define AVB_AB_MAX_TRIES_REMAINING 7
 
 typedef struct AvbABSlotData {
-    /* Slot priority. Valid values range from 0 to AVB_AB_MAX_PRIORITY,
-     * both inclusive with 1 being the lowest and AVB_AB_MAX_PRIORITY
-     * being the highest. The special value 0 is used to indicate the
-     * slot is unbootable.
-     */
-    uint8_t priority;
+	/* Slot priority. Valid values range from 0 to AVB_AB_MAX_PRIORITY,
+	 * both inclusive with 1 being the lowest and AVB_AB_MAX_PRIORITY
+	 * being the highest. The special value 0 is used to indicate the
+	 * slot is unbootable.
+	 */
+	uint8_t priority;
 
-    /* Number of times left attempting to boot this slot ranging from 0
-     * to AVB_AB_MAX_TRIES_REMAINING.
-     */
-    uint8_t tries_remaining;
+	/* Number of times left attempting to boot this slot ranging from 0
+	 * to AVB_AB_MAX_TRIES_REMAINING.
+	 */
+	uint8_t tries_remaining;
 
-    /* Non-zero if this slot has booted successfully, 0 otherwise. */
-    uint8_t successful_boot;
+	/* Non-zero if this slot has booted successfully, 0 otherwise. */
+	uint8_t successful_boot;
 
-    /* Reserved for future use. */
-    uint8_t reserved[1];
+	/* Reserved for future use. */
+	uint8_t reserved[1];
 } __attribute__((packed)) AvbABSlotData;
 
 /* Struct used for recording A/B metadata.
@@ -66,31 +66,31 @@ typedef struct AvbABSlotData {
  * When serialized, data is stored in network byte-order.
  */
 typedef struct AvbABData {
-    /* Magic number used for identification - see AVB_AB_MAGIC. */
-    uint8_t magic[AVB_AB_MAGIC_LEN];
+	/* Magic number used for identification - see AVB_AB_MAGIC. */
+	uint8_t magic[AVB_AB_MAGIC_LEN];
 
-    /* Version of on-disk struct - see AVB_AB_{MAJOR,MINOR}_VERSION. */
-    uint8_t version_major;
-    uint8_t version_minor;
+	/* Version of on-disk struct - see AVB_AB_{MAJOR,MINOR}_VERSION. */
+	uint8_t version_major;
+	uint8_t version_minor;
 
-    /* Padding to ensure |slots| field start eight bytes in. */
-    uint8_t reserved1[2];
+	/* Padding to ensure |slots| field start eight bytes in. */
+	uint8_t reserved1[2];
 
-    /* Per-slot metadata. */
-    AvbABSlotData slots[2];
+	/* Per-slot metadata. */
+	AvbABSlotData slots[2];
 
-    /* Reserved for future use. */
-    uint8_t reserved2[12];
+	/* Reserved for future use. */
+	uint8_t reserved2[12];
 
-    /* CRC32 of all 28 bytes preceding this field. */
-    uint32_t crc32;
+	/* CRC32 of all 28 bytes preceding this field. */
+	uint32_t crc32;
 } __attribute__((packed)) AvbABData;
 
 typedef enum {
-    AVB_AB_FLOW_RESULT_OK,
-    AVB_AB_FLOW_RESULT_ERROR_IO,
-    AVB_AB_FLOW_RESULT_ERROR_NO_BOOTABLE_SLOTS,
-    AVB_AB_FLOW_RESULT_ERROR_INVALID_ARGUMENT
+	AVB_AB_FLOW_RESULT_OK,
+	AVB_AB_FLOW_RESULT_ERROR_IO,
+	AVB_AB_FLOW_RESULT_ERROR_NO_BOOTABLE_SLOTS,
+	AVB_AB_FLOW_RESULT_ERROR_INVALID_ARGUMENT
 } AvbABFlowResult;
 
 AvbABFlowResult avb_ab_flow(void);
