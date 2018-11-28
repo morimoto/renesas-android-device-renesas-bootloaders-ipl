@@ -34,6 +34,7 @@ BL2_SOURCES		+=	${RCAR_GIC_SOURCES}				\
 				plat/renesas/rcar/drivers/error/bl2_int_error.c	\
 				plat/renesas/rcar/aarch64/rcar_helpers.S	\
 				plat/renesas/rcar/bl2_avb_ab_flow.c		\
+				plat/renesas/rcar/avb_sha256.c			\
 				plat/renesas/rcar/bl2_rcar_setup.c		\
 				plat/renesas/rcar/aarch64/rcar_common.c		\
 				plat/renesas/rcar/aarch64/rcar_drivers_common.c	\

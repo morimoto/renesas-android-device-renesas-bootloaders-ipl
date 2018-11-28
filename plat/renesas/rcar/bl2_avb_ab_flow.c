@@ -34,6 +34,8 @@
 #include "emmc_std.h"
 #include "emmc_def.h"
 #include "bl2_avb_ab_flow.h"
+#include "ipl_emmc.h"
+#include "avb_sha.h"
 
 #define AVB_BLOCK_DATA_OFFSET (0x4)
 #define USER_PARTITION		  (0x0)
@@ -51,26 +53,76 @@
 #define MMC_BOOT0 1
 #define MMC_BOOT1 2
 
-static int check_emmc_header(int partition)
+static bool is_hash_ok(uint8_t *buf,  uint32_t len, uint8_t *digest, uint32_t digest_type)
 {
-	uint8_t buf[EMMC_SECTOR_SIZE];
-	int result = 0;
+	unsigned char hash[AVB_SHA256_DIGEST_SIZE];
 
-	result = emmc_select_partition(partition);
-	if (result != EMMC_SUCCESS)
-		return -1;
+	switch (digest_type) {
+		case SHA_256:
+			sha256(buf, len, hash);
+			if (!memcmp(hash, digest, AVB_SHA256_DIGEST_SIZE)) {
+				return true;
+			}
+			break;
+		default:
+			ERROR("Unsupported digest type (%d)\n",
+				digest_type);
+			break;
+	}
+	return false;
+}
 
-	result = emmc_read_sector((uint32_t *)&buf[0], 0,
-			1, WITHOUT_DMA);
-	if (result != EMMC_SUCCESS) {
+/*The image size is 2MB*/
+#define IPL_IMAGE_SIZE (2*1024*1024)
+#define IPL_BUFF_ADDR 0x50000000
+
+/*We'll boot IPLs into DRAM*/
+static uint8_t *ipl_image_buf = (uint8_t *) IPL_BUFF_ADDR;
+
+static int check_emmc_hash(int partition)
+{
+	struct ipl_params *ipls[MAX_IPLS];
+	  uint8_t *buf[MAX_IPLS];
+
+	int total_ipls = 0, unpacked_ipls = 0;
+	struct ipl_image *img = (struct ipl_image *)ipl_image_buf;
+	int i, res;
+
+	res = emmc_select_partition(partition);
+	if (res != EMMC_SUCCESS) {
+		ERROR("Error selecting partition %u\n", partition);
 		return -1;
 	}
 
-	if (memcmp(&buf[0], IPL_EMMC_BOOT_MAGIC, sizeof(IPL_EMMC_BOOT_MAGIC))) {
-		ERROR("IPL signature on partition %d incorrect!\n", partition);
+	res = emmc_read_sector((uint32_t *)ipl_image_buf, 0,
+					IPL_IMAGE_SIZE/EMMC_SECTOR_SIZE, WITHOUT_DMA);
+
+	if(strncmp(img->hdr.ipl_magic, IPL_EMMC_BOOT_MAGIC, sizeof(img->hdr.ipl_magic))) {
+		ERROR("Image magic is wrong!\n");
 		return -1;
 	}
-	return 0;
+
+	/*Read IPL parameters and data*/
+	for (i = 0; i< MAX_IPLS; i++) {
+			/*Check if we have the appropriate IPL*/
+			if (img->hdr.ipl_offset[i] > 0 && (img->hdr.ipl_offset[i] < IPL_IMAGE_SIZE)) {
+				total_ipls++;
+				ipls[i] = (struct ipl_params *)(ipl_image_buf + img->hdr.ipl_offset[i]);
+				buf[i] = ( uint8_t *) ((uint64_t)ipls[i] + sizeof(struct ipl_params));
+				if (is_hash_ok(buf[i], ipls[i]->fsize, ipls[i]->digest, ipls[i]->digest_type)) {
+					unpacked_ipls++;
+				} else {
+					ERROR("SHA-256 mismatch for image %s\n",  ipls[i]->fname);
+				}
+			}
+	}
+
+	if (total_ipls != unpacked_ipls) {
+		ERROR("Error: only %d IPLs of %d checked\n",
+			unpacked_ipls, total_ipls);
+	}
+
+	return -(total_ipls - unpacked_ipls);
 }
 
 static int load_gpt_header(gpt_header_t *header, int partition)
@@ -405,7 +457,7 @@ static AvbABFlowResult avb_ab_get_curr_slot(const AvbABData *data, int *slot_idx
 		*slot_idx = AVB_AB_SLOT_B;
 	} else {
 		/* Warning instead of error, because we can still try to restore BLs from HF */
-		WARN("No bootable slots in eMMC\n");
+		ERROR("No bootable slots in eMMC\n");
 		return AVB_AB_FLOW_RESULT_ERROR_NO_BOOTABLE_SLOTS;
 	}
 
@@ -443,21 +495,25 @@ AvbABFlowResult avb_ab_flow(void)
 	 *This is preliminary check for boot magic. We should
 	 *not continue with emmc boot if no emmc IPLs found
 	 */
-	if (check_emmc_header(MMC_BOOT0)) {
+	if (check_emmc_hash(MMC_BOOT0)) {
 		/*Set slot unbootable*/
 		data.slots[AVB_AB_SLOT_A].priority = 0;
 		data.slots[AVB_AB_SLOT_A].tries_remaining = 0;
 		data.slots[AVB_AB_SLOT_A].successful_boot = 0;
+		ERROR("Bootloader partition %d corrupted, settimng unbootable\n", MMC_BOOT0);
 	}
-	if (check_emmc_header(MMC_BOOT1)) {
+	if (check_emmc_hash(MMC_BOOT1)) {
 		data.slots[AVB_AB_SLOT_B].priority = 0;
 		data.slots[AVB_AB_SLOT_B].tries_remaining = 0;
 		data.slots[AVB_AB_SLOT_B].successful_boot = 0;
+		ERROR("Bootloader partition %d corrupted, settimng unbootable\n", MMC_BOOT1);
 	}
 
 	result = avb_ab_get_curr_slot(&data, &slot_to_boot);
-	if (result != AVB_AB_FLOW_RESULT_OK)
+	if (result != AVB_AB_FLOW_RESULT_OK) {
+		avb_ab_update_and_save(&data);
 		return result;
+	}
 
 	if (data.slots[slot_to_boot].successful_boot)
 		goto select_part;
