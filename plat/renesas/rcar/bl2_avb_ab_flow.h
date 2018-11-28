@@ -95,4 +95,6 @@ typedef enum {
 
 AvbABFlowResult avb_ab_flow(void);
 
+int32_t avb_get_boot_partition_idx(void);
+
 #endif /* BL2_AVB_AB_FLOW_H */

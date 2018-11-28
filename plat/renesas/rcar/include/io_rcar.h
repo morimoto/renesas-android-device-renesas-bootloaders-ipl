@@ -8,8 +8,6 @@
 #ifndef IO_RCAR_H__
 #define IO_RCAR_H__
 
-#define RCAR_EMMC_CERT_HEADER	(0x00030000U)
-
 int32_t register_io_dev_rcar(const io_dev_connector_t **dev_con);
 int32_t file_to_cert(const int32_t filename, uint32_t *cert_addr);
 void get_info_from_cert(uint64_t cert_addr, uint32_t *size, uintptr_t *dest_addr);
