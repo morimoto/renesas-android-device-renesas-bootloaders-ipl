@@ -500,13 +500,13 @@ AvbABFlowResult avb_ab_flow(void)
 		data.slots[AVB_AB_SLOT_A].priority = 0;
 		data.slots[AVB_AB_SLOT_A].tries_remaining = 0;
 		data.slots[AVB_AB_SLOT_A].successful_boot = 0;
-		ERROR("Bootloader partition %d corrupted, settimng unbootable\n", MMC_BOOT0);
+		ERROR("Bootloader partition %d corrupted, setting unbootable\n", MMC_BOOT0);
 	}
 	if (check_emmc_hash(MMC_BOOT1)) {
 		data.slots[AVB_AB_SLOT_B].priority = 0;
 		data.slots[AVB_AB_SLOT_B].tries_remaining = 0;
 		data.slots[AVB_AB_SLOT_B].successful_boot = 0;
-		ERROR("Bootloader partition %d corrupted, settimng unbootable\n", MMC_BOOT1);
+		ERROR("Bootloader partition %d corrupted, setting unbootable\n", MMC_BOOT1);
 	}
 
 	result = avb_ab_get_curr_slot(&data, &slot_to_boot);
