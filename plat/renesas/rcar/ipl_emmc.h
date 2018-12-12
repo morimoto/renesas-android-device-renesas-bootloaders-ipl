@@ -25,36 +25,17 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-
 #define IPL_EMMC_BOOT_MAGIC "BOOTMMC"
 #define IPL_EMMC_BOOT_MAGIC_SIZE sizeof(IPL_EMMC_BOOT_MAGIC)
 
 #define IPL_FILE_NAME_SIZE 32
-#define MAX_IPLS 6
+#define MAX_IPLS 4
 
 #ifndef ARRAY_SIZE
 #define ARRAY_SIZE(a) (sizeof(a)/sizeof(*(a)))
 #endif
 
-#define BOOTPARAM_OFFSET    (0x00000200)
-#define BL2_OFFSET          (0x00003C00)
-#define CERT_HEADER_OFFSET  (0x00030000)
-#define BL31_OFFSET         (0x00040000)
-#define TEE_OFFSET          (0x000A0000)
-#define UBOOT_OFFSET        (0x00100000)
-
-/*IPL types*/
-enum {
-    PARAM = 0xAA550001,
-    BL2,
-    CERT,
-    BL31,
-    OPTEE,
-    UBOOT,
-};
-
 /*Digest types*/
-
 enum {
     NO_HASH = 0xF0,
     SHA_1,

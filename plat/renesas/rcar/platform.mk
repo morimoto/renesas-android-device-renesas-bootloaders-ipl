@@ -17,7 +17,8 @@ PLAT_INCLUDES		:=	-Iinclude/common/tbbr				\
 				-Iplat/renesas/rcar/include			\
 				-Iplat/renesas/rcar				\
 				-Iplat/renesas/rcar/ddr				\
-				-Iplat/renesas/rcar/qos
+				-Iplat/renesas/rcar/qos				\
+				-Itools/dummy_create
 
 include lib/xlat_tables_v2/xlat_tables.mk
 

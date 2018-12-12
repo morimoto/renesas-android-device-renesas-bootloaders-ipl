@@ -37,21 +37,20 @@
 #include "ipl_emmc.h"
 #include "avb_sha.h"
 
-#define AVB_BLOCK_DATA_OFFSET (0x4)
-#define USER_PARTITION		  (0x0)
+#define AVB_BLOCK_DATA_OFFSET		(0x4)
+#define USER_PARTITION			(0x0)
+#define USE_DMA				(0x1)
+#define WITHOUT_DMA			(0x0)
 
-/* Functions for working with gpt-tables */
-#define addr_to_blk(blk_addr)	((blk_addr) >> (EMMC_SECTOR_SIZE_SHIFT))
+#define addr_to_blk(blk_addr)		((blk_addr) >> (EMMC_SECTOR_SIZE_SHIFT))
 #define blk_to_addr(addr)		((blk_addr) << (EMMC_SECTOR_SIZE_SHIFT))
-#define GPT_HEADER_BLK_OFFSET	addr_to_blk(GPT_HEADER_OFFSET)
+#define get_offset_in_block(addr)	((addr) % (EMMC_SECTOR_SIZE))
+#define GPT_HEADER_BLK_OFFSET		addr_to_blk(GPT_HEADER_OFFSET)
 #define GPT_BLOCK_SIZE			addr_to_blk(PARTITION_BLOCK_SIZE)
-#define GPT_BLOCK_ENTRY_OFFSET	addr_to_blk(GPT_ENTRY_OFFSET)
-#define USE_DMA					(0x1)
-#define WITHOUT_DMA				(0x0)
+#define GPT_BLOCK_ENTRY_OFFSET		addr_to_blk(GPT_ENTRY_OFFSET)
 
-#define IPL_EMMC_BOOT_MAGIC "BOOTMMC"
-#define MMC_BOOT0 1
-#define MMC_BOOT1 2
+#define MMC_BOOT0 (1)
+#define MMC_BOOT1 (2)
 
 static bool is_hash_ok(uint8_t *buf,  uint32_t len, uint8_t *digest, uint32_t digest_type)
 {
@@ -72,8 +71,6 @@ static bool is_hash_ok(uint8_t *buf,  uint32_t len, uint8_t *digest, uint32_t di
 	return false;
 }
 
-/*The image size is 2MB*/
-#define IPL_IMAGE_SIZE (2*1024*1024)
 #define IPL_BUFF_ADDR 0x50000000
 
 /*We'll boot IPLs into DRAM*/
@@ -81,11 +78,11 @@ static uint8_t *ipl_image_buf = (uint8_t *) IPL_BUFF_ADDR;
 
 static int check_emmc_hash(int partition)
 {
-	struct ipl_params *ipls[MAX_IPLS];
-	  uint8_t *buf[MAX_IPLS];
-
+	struct ipl_params *ipl_param = NULL;
+	uint8_t *buf = NULL;
+	uint32_t offset_in_block = 0;
 	int total_ipls = 0, unpacked_ipls = 0;
-	struct ipl_image *img = (struct ipl_image *)ipl_image_buf;
+	struct ipl_image img;
 	int i, res;
 
 	res = emmc_select_partition(partition);
@@ -94,25 +91,35 @@ static int check_emmc_hash(int partition)
 		return -1;
 	}
 
-	res = emmc_read_sector((uint32_t *)ipl_image_buf, 0,
-					IPL_IMAGE_SIZE/EMMC_SECTOR_SIZE, WITHOUT_DMA);
+	emmc_read_sector((uint32_t *)ipl_image_buf, 0, 1, WITHOUT_DMA);
+	memcpy(&img, ipl_image_buf, sizeof(img));
 
-	if(strncmp(img->hdr.ipl_magic, IPL_EMMC_BOOT_MAGIC, sizeof(img->hdr.ipl_magic))) {
+	if(strncmp(img.hdr.ipl_magic, IPL_EMMC_BOOT_MAGIC, sizeof(img.hdr.ipl_magic))) {
 		ERROR("Image magic is wrong!\n");
 		return -1;
 	}
 
 	/*Read IPL parameters and data*/
-	for (i = 0; i< MAX_IPLS; i++) {
+	for (i = 0; i < MAX_IPLS; i++) {
 			/*Check if we have the appropriate IPL*/
-			if (img->hdr.ipl_offset[i] > 0 && (img->hdr.ipl_offset[i] < IPL_IMAGE_SIZE)) {
+			if (img.hdr.ipl_offset[i] > 0) {
 				total_ipls++;
-				ipls[i] = (struct ipl_params *)(ipl_image_buf + img->hdr.ipl_offset[i]);
-				buf[i] = ( uint8_t *) ((uint64_t)ipls[i] + sizeof(struct ipl_params));
-				if (is_hash_ok(buf[i], ipls[i]->fsize, ipls[i]->digest, ipls[i]->digest_type)) {
+				/*
+				 * Addresses can be not aligned to @EMMC_SECTOR_SIZE
+				 * so we need to save the offset in block from which
+				 * data starts.
+				 */
+				emmc_read_sector((uint32_t *)ipl_image_buf, addr_to_blk(img.hdr.ipl_offset[i]),
+					1, WITHOUT_DMA);
+				offset_in_block = get_offset_in_block(img.hdr.ipl_offset[i]);
+				ipl_param = (struct ipl_params *)(ipl_image_buf + offset_in_block);
+				emmc_read_sector((uint32_t *)ipl_image_buf, addr_to_blk(img.hdr.ipl_offset[i]),
+					addr_to_blk(ipl_param->fsize + EMMC_SECTOR_SIZE - 1) + 1, WITHOUT_DMA);
+				buf = (uint8_t *)(ipl_image_buf + offset_in_block + sizeof(struct ipl_params));
+				if (is_hash_ok(buf, ipl_param->fsize, ipl_param->digest, ipl_param->digest_type)) {
 					unpacked_ipls++;
 				} else {
-					ERROR("SHA-256 mismatch for image %s\n",  ipls[i]->fname);
+					ERROR("SHA-256 mismatch for image %s\n",  ipl_param->fname);
 				}
 			}
 	}
