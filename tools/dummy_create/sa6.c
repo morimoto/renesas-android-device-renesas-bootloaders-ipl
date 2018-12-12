@@ -5,6 +5,7 @@
  */
 
 #include <sys/stdint.h>
+#include "emmc_ipl_addr.h"
 
 #define RCAR_SA6_TYPE_HYPERFLASH	(0)
 #define RCAR_SA6_TYPE_EMMC		(1)
@@ -52,15 +53,15 @@
 /* Number of content cert for Non-secure Target Program(BL33x) */
 #define RCAR_IMAGE_NUM			(0x00000001U)
 /* Source address on eMMC for BL31 */
-#define RCAR_BL31SRC_ADDRESS		(0x00040000U)
+#define RCAR_BL31SRC_ADDRESS		RCAR_ARM_TRUSTED_ADDR
 /* Source partition on eMMC for BL31 */
 #define RCAR_BL31_PARTITION		(0x00000001U)
 /* Source address on eMMC for BL32 */
-#define RCAR_BL32SRC_ADDRESS		(0x000A0000U)
+#define RCAR_BL32SRC_ADDRESS		RCAR_OPTEE_ADDR
 /* Source partition on eMMC for BL32 */
 #define RCAR_BL32_PARTITION		(0x00000001U)
 /* Source address on eMMC for BL33 */
-#define RCAR_BL33SRC_ADDRESS		(0x00100000U)
+#define RCAR_BL33SRC_ADDRESS		RCAR_UBOOT_ADDR
 /* Source partition on eMMC for BL33 */
 #define RCAR_BL33_PARTITION		(0x00000001U)
 /* Reserved */

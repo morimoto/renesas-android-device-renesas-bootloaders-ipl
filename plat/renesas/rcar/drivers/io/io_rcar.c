@@ -25,6 +25,7 @@
 #if (RCAR_BOOT_EMMC == 1)
 #include "bl2_avb_ab_flow.h"
 #endif
+#include "emmc_ipl_addr.h"
 
 typedef struct {
 	const int32_t	name;
@@ -72,7 +73,6 @@ typedef struct {
 #define RCAR_CERT_LOAD			(1U)
 
 #define RCAR_FLASH_CERT_HEADER	RCAR_GET_FLASH_ADR(6U, 0U)
-#define RCAR_EMMC_CERT_HEADER	(0x00030000U)
 
 #define RCAR_COUNT_LOAD_BL33		(2U)
 #define RCAR_COUNT_LOAD_BL33X		(3U)
