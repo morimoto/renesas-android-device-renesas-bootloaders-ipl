@@ -379,6 +379,10 @@ static void bl2_lossy_setting(uint32_t no, uint64_t start_addr,
 }
 #endif /* #if (RCAR_LOSSY_ENABLE == 1) */
 
+/*
+* We will use this variable to pass the board ID to u-boot
+*/
+static uint32_t board_type;
 /*******************************************************************************
  * BL1 has passed the extents of the trusted SRAM that should be visible to BL2
  * in x0. This memory layout is sitting at the base of the free trusted SRAM.
@@ -392,7 +396,6 @@ static void rcar_bl2_early_platform_setup(const meminfo_t *mem_layout)
 	uint32_t modemr_boot_dev;
 	uint32_t modemr_sscg;
 	int32_t ret;
-	uint32_t board_type;
 	uint32_t board_rev;
 	uint32_t prr_val;
 	char msg[128];
@@ -1021,6 +1024,7 @@ void bl2_plat_set_bl33_ep_info(struct image_info *image,
 	SET_SECURITY_STATE(ep->h.attr, NON_SECURE);
 	ep->spsr = rcar_get_spsr_for_bl33_entry();
 	ep->args.arg1 = _cnf_BOARDTYPE;
+	ep->args.arg2 = board_type;
 #ifdef RCAR_BL33_ARG0
 	ep->args.arg0 = RCAR_BL33_ARG0;
 #endif
