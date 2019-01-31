@@ -18,6 +18,7 @@
 #include "pfc_init.h"
 #include "rpc_driver.h"
 #include "dma_driver.h"
+#include "micro_wait.h"
 #include "bl2_secure_setting.h"
 #include "bl2_cpg_register.h"
 #include "bl2_cpg_init.h"
@@ -151,6 +152,29 @@
 #define	GPIO_INDT1		(GPIO_BASE + 0x100CU)
 #define GPIO_INDT6		(GPIO_BASE + 0x540CU)
 
+/* LSI Multiplexed Pin Setting Mask Register */
+#define PFC_PMMR		0xE6060000
+/* GPIO/perihperal function select */
+#define PFC_GPSR6		0xE6060118
+
+/* General input/output switching registers */
+#define GPIO_INOUTSEL6	(GPIO_BASE + 0x5404U)
+/* General IO/Interrupt Switching Register */
+#define GPIO_IOINTSEL6	(GPIO_BASE + 0x5400U)
+
+/* Switch used for reading user input
+ * GP_6_12: SW21 for Salvator-X(S), SW22 - for SK
+ */
+#define SW			12
+
+/* This value was measured by the experimental way:
+ * it differs from board to board, but the maximum
+ * measured value was 8600 usec. So, if take sleep
+ * interval eq. 10 usec, then SW_DELAY*10
+ * must to cover maximum delay time.
+ */
+#define SW_DELAY		1000
+
 #if (RCAR_LSI == RCAR_E3)
 #define GPIO_INDT		(GPIO_INDT6)
 #define GPIO_BKUP_TRG_SHIFT	((uint32_t)1U<<13U)
@@ -169,6 +193,7 @@
 
 static uint32_t isDdrBackupMode(void);
 static void bl2_init_generic_timer(void);
+static uint8_t isSwitchPressed(void);
 
 /* Board memory model detected at time InitDram function call.
  * Defined at plat/renesas/rcar/ddr/ddr_b/boot_init_dram.c */
@@ -768,6 +793,12 @@ static void rcar_bl2_early_platform_setup(const meminfo_t *mem_layout)
 		LOSSY_FMT2, LOSSY_ENA_DIS2);
 #endif /* #if (RCAR_LOSSY_ENABLE == 1) */
 
+	if (isSwitchPressed()) {
+		NOTICE("BL2: Force boot from HyperFlash.\n");
+		rcar_io_setup();
+		return;
+	}
+
 	/* Initialise the IO layer and register platform IO devices */
 	if((modemr_boot_dev == MODEMR_BOOT_DEV_EMMC_25X1) ||
 	   (modemr_boot_dev == MODEMR_BOOT_DEV_EMMC_50X8)) {
@@ -780,6 +811,68 @@ static void rcar_bl2_early_platform_setup(const meminfo_t *mem_layout)
 	} else {
 		rcar_io_setup();
 	}
+}
+
+/*******************************************************************************
+ *	barrier
+ ******************************************************************************/
+static inline void dsb_sev(void)
+{
+	__asm__ __volatile__ ("dsb sy");
+}
+
+static uint8_t isSwitchPressed(void)
+{
+	const uint32_t mask = (1<<SW);
+	uint32_t gpsr6_bak, dataL;
+	uint32_t out, i = 0;
+
+	gpsr6_bak = mmio_read_32(PFC_GPSR6);
+	dataL = gpsr6_bak & ~mask;
+
+	mmio_write_32(PFC_PMMR, ~dataL);
+	dataL = ~mmio_read_32(PFC_PMMR);
+	mmio_write_32(PFC_GPSR6, dataL);
+	while (dataL != mmio_read_32(PFC_GPSR6))
+		;
+	dsb_sev();
+	micro_wait(10);
+
+	/* Turn off interrupt mode / switch to IO */
+	dataL = mmio_read_32(GPIO_IOINTSEL6);
+	dataL &= ~mask;
+	mmio_write_32(GPIO_IOINTSEL6, dataL);
+	while (dataL != mmio_read_32(GPIO_IOINTSEL6))
+		;
+	dsb_sev();
+
+	/* Activate input mode */
+	dataL = mmio_read_32(GPIO_INOUTSEL6);
+	dataL &= ~mask;
+	mmio_write_32(GPIO_INOUTSEL6, dataL);
+	while (dataL != mmio_read_32(GPIO_INOUTSEL6))
+		;
+	dsb_sev();
+
+	/* There is a delay when the state of the switch
+	 * will be mapped to a register value. This value
+	 * was obtained experimentally.
+	 */
+	dataL = mmio_read_32(GPIO_INDT6)&mask;
+	dsb_sev();
+
+	while (i < SW_DELAY) {
+		out = mmio_read_32(GPIO_INDT6)&mask;
+		dsb_sev();
+		if (out != dataL) {
+			dataL = out;
+			break;
+		}
+		micro_wait(10);
+		++i;
+	}
+
+	return !((dataL>>(SW))&0x1);
 }
 
 void bl2_el3_early_platform_setup(u_register_t arg0 __unused,
