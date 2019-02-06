@@ -357,9 +357,15 @@ static AvbABFlowResult avb_ab_write_data(const AvbABData *data)
 	gpt_header_t header;
 	partition_entry_t entry;
 
-	/*Todo add error messages */
-	load_gpt_header(&header, USER_PARTITION);
-	get_part_info(USER_PARTITION, &header, &entry, "misc");
+	if (load_gpt_header(&header, USER_PARTITION)) {
+		ERROR("Failed to load GPT table\n");
+		return AVB_AB_FLOW_RESULT_ERROR_IO;
+	}
+
+	if (get_part_info(USER_PARTITION, &header, &entry, "misc")) {
+		ERROR("Failed to get information from misc partition\n");
+		return AVB_AB_FLOW_RESULT_ERROR_IO;
+	}
 
 	result = emmc_select_partition(USER_PARTITION);
 	if (result != EMMC_SUCCESS) {
@@ -416,8 +422,15 @@ static AvbABFlowResult avb_ab_read_data(AvbABData *data)
 	gpt_header_t header;
 	partition_entry_t entry;
 
-	load_gpt_header(&header, USER_PARTITION);
-	get_part_info(USER_PARTITION, &header, &entry, "misc");
+	if (load_gpt_header(&header, USER_PARTITION)) {
+		ERROR("Failed to load GPT table\n");
+		return AVB_AB_FLOW_RESULT_ERROR_IO;
+	}
+
+	if (get_part_info(USER_PARTITION, &header, &entry, "misc")) {
+		ERROR("Failed to get information from misc partition\n");
+		return AVB_AB_FLOW_RESULT_ERROR_IO;
+	}
 
 	result = emmc_select_partition(USER_PARTITION);
 	if (result != EMMC_SUCCESS) {
