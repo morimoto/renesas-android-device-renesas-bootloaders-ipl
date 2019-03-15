@@ -8,6 +8,7 @@
 #ifndef RCAR_DEF_H__
 #define RCAR_DEF_H__
 
+#include <platform_def.h>
 #include <tbbr_img_def.h>
 #include <utils_def.h>
 
@@ -293,7 +294,11 @@
 #define RCAR_CA57_DIS_LOAD_PASS_STORE	(ULL(1) << 55)
 
 #if (RCAR_DRAM_LPDDR4_MEMCONF == 3)
-#define	RCAR_SRAM_STASH		ULL(0xe635ff00)
+/*
+ * This address is used because BL31 will loaded after
+ * DRAM will be initialized in BL2.
+ */
+#define	RCAR_SRAM_STASH		(BL31_SRAM_BASE)
 #define	RCAR_SRAM_NICK		ULL(0xf0a5f0a5f0a5f0a5)
 #endif
 
