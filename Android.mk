@@ -17,24 +17,30 @@
 # Include only for Renesas ones.
 ifneq (,$(filter $(TARGET_PRODUCT), salvator ulcb kingfisher))
 
+IPL_SRC             := $(abspath ./device/renesas/bootloaders/ipl)
+IPL_SA_SRC          := $(abspath ./device/renesas/bootloaders/ipl/tools/dummy_create)
 
-PRODUCT_OUT_ABS := $(abspath $(PRODUCT_OUT))
-
-IPL_SRC       := $(abspath ./device/renesas/bootloaders/ipl/)
-IPL_OUT       := $(PRODUCT_OUT_ABS)/obj/IPL_OBJ
-IPL_DUMMY_OUT := $(PRODUCT_OUT_ABS)/obj/IPL_DUMMY_OBJ
-
-IPL_CROSS_COMPILE := $(BSP_GCC_CROSS_COMPILE)
+IPL_OUT             := $(PRODUCT_OUT)/obj/IPL_OBJ
+IPL_SA_OUT          := $(PRODUCT_OUT)/obj/IPL_OBJ/tools/dummy_create
+IPL_OUT_ABS         := $(abspath $(IPL_OUT))
+IPL_SA_OUT_ABS      := $(abspath $(IPL_SA_OUT))
+IPL_BUILD           := release
 
 ifeq ($(DEBUG),1)
-    BUILD=debug
-else
-    BUILD=release
+    IPL_BUILD := debug
 endif
 
-USE_MULTIMEDIA=1
+IPL_SA0_BINARY      := $(IPL_SA_OUT)/bootparam_sa0.bin
+IPL_SA6_BINARY      := $(IPL_SA_OUT)/cert_header_sa6.bin
+IPL_BL2_BINARY      := $(IPL_OUT)/rcar/$(IPL_BUILD)/bl2.bin
+IPL_BL31_BINARY     := $(IPL_OUT)/rcar/$(IPL_BUILD)/bl31.bin
 
-PLATFORM_FLAGS = \
+IPL_SA0_SREC        := $(IPL_SA_OUT)/bootparam_sa0.srec
+IPL_SA6_SREC        := $(IPL_SA_OUT)/cert_header_sa6.srec
+IPL_BL2_SREC        := $(IPL_OUT)/rcar/$(IPL_BUILD)/bl2.srec
+IPL_BL31_SREC       := $(IPL_OUT)/rcar/$(IPL_BUILD)/bl31.srec
+
+PLATFORM_FLAGS := \
     PLAT=rcar \
     PSCI_DISABLE_BIGLITTLE_IN_CA57BOOT=0
 
@@ -94,97 +100,113 @@ else
 ifeq ($(TARGET_BOARD_PLATFORM),r8a77965)
 PLATFORM_FLAGS += \
     RCAR_DRAM_LPDDR4_MEMCONF=2
+
 endif # ($(TARGET_BOARD_PLATFORM),r8a77965)
 endif # ($(TARGET_BOARD_PLATFORM),r8a7796)
 endif # ($(TARGET_BOARD_PLATFORM),r8a7795)
 
-ifeq ($(USE_MULTIMEDIA), 1)
-LOSSY_ENABLE=1
-else
-LOSSY_ENABLE=0
-endif
+PLATFORM_FLAGS += \
+    BUILD=$(IPL_BUILD) \
+    CROSS_COMPILE=$(BSP_GCC_CROSS_COMPILE)
 
+# Use multimedia
+PLATFORM_FLAGS += \
+    RCAR_LOSSY_ENABLE=1
 
-.PHONY: ipl_out_dir
-ipl_out_dir:
+$(IPL_OUT):
 	$(MKDIR) -p $(IPL_OUT)
 
-.PHONY: ipl_dummy_dir
-ipl_dummy_dir:
-	mkdir -p $(IPL_DUMMY_OUT)
-	$(hide) cp -R $(IPL_SRC)/tools $(IPL_DUMMY_OUT)/tools
-	$(hide) cp -R $(IPL_SRC)/include/ $(IPL_DUMMY_OUT)/include
+$(IPL_SA_OUT): $(IPL_OUT)
+	cp -R $(IPL_SRC)/tools $(IPL_OUT)/
+	cp -R $(IPL_SRC)/include $(IPL_OUT)/
 
-.PHONY: iplclean
-iplclean:
-	CROSS_COMPILE=$(IPL_CROSS_COMPILE) $(ANDROID_MAKE) $(PLATFORM_FLAGS) \
-	 -C $(IPL_SRC) O=$(IPL_OUT) distclean
+$(IPL_SA0_BINARY) : $(IPL_SA_OUT)
+	export $(PLATFORM_FLAGS)
+	$(ANDROID_MAKE) $(PLATFORM_FLAGS) -C $(IPL_SA_OUT_ABS) clean
+	$(ANDROID_MAKE) $(PLATFORM_FLAGS) CPPFLAGS="-D=AARCH64" -C $(IPL_SA_OUT_ABS) all
 
-.PHONY: android_dummy
-android_dummy: ipl_dummy_dir
-	@echo "Building android_dummy"
+$(IPL_SA6_BINARY) : $(IPL_SA0_BINARY)
 
-	CROSS_COMPILE=$(IPL_CROSS_COMPILE) $(ANDROID_MAKE) $(PLATFORM_FLAGS) \
-	 -C $(IPL_DUMMY_OUT)/tools/dummy_create clean
-	CROSS_COMPILE=$(IPL_CROSS_COMPILE) $(ANDROID_MAKE) CPPFLAGS="-D=AARCH64" \
-	 $(PLATFORM_FLAGS) -C $(IPL_DUMMY_OUT)/tools/dummy_create
+$(IPL_SA0_SREC) : $(IPL_SA_OUT)
+	export $(PLATFORM_FLAGS)
+	$(ANDROID_MAKE) $(PLATFORM_FLAGS) -C $(IPL_SA_OUT_ABS) clean
+	$(ANDROID_MAKE) $(PLATFORM_FLAGS) CPPFLAGS="-D=AARCH64" RCAR_SA6_TYPE=0 -C $(IPL_SA_OUT_ABS) all
 
-.PHONY: android_dummy_hf
-android_dummy_hf: ipl_dummy_dir
-	@echo "Building android_dummy_hf"
+$(IPL_SA6_SREC) : $(IPL_SA0_SREC)
 
-	CROSS_COMPILE=$(IPL_CROSS_COMPILE) $(ANDROID_MAKE) $(PLATFORM_FLAGS) \
-	 -C $(IPL_DUMMY_OUT)/tools/dummy_create clean
-	CROSS_COMPILE=$(IPL_CROSS_COMPILE) $(ANDROID_MAKE) CPPFLAGS="-D=AARCH64" \
-	 $(PLATFORM_FLAGS) RCAR_SA6_TYPE=0 -C $(IPL_DUMMY_OUT)/tools/dummy_create
+$(IPL_BL2_BINARY) : $(IPL_OUT)
+	export $(PLATFORM_FLAGS)
+	$(ANDROID_MAKE) IPL_OUT=$(IPL_OUT_ABS) $(PLATFORM_FLAGS) -C $(IPL_SRC) distclean
+	$(ANDROID_MAKE) IPL_OUT=$(IPL_OUT_ABS) $(PLATFORM_FLAGS) -C $(IPL_SRC) all
 
+$(IPL_BL31_BINARY) : $(IPL_BL2_BINARY)
+$(IPL_BL2_SREC) : $(IPL_BL2_BINARY)
+$(IPL_BL31_SREC) : $(IPL_BL31_BINARY)
 
+# ----------------------------------------------------------------------
 
-.PHONY: android_ipl
-android_ipl: ipl_out_dir
-	@echo "Building ipl"
-	CROSS_COMPILE=$(IPL_CROSS_COMPILE) $(ANDROID_MAKE) IPL_OUT=$(IPL_OUT) \
-	 RCAR_DRAM_SPLIT=$(RCAR_DRAM_SPLIT) RCAR_LOSSY_ENABLE=$(RCAR_LOSSY_ENABLE) \
-	 $(PLATFORM_FLAGS) -C $(IPL_SRC) distclean
+include $(CLEAR_VARS)
+LOCAL_MODULE                := bootparam_sa0.bin
+LOCAL_PREBUILT_MODULE_FILE  := $(IPL_SA0_BINARY)
+LOCAL_MODULE_PATH           := $(PRODUCT_OUT)
+LOCAL_MODULE_CLASS          := EXECUTABLES
+include $(BUILD_PREBUILT)
+$(LOCAL_BUILT_MODULE): $(LOCAL_PREBUILT_MODULE_FILE)
 
-	CROSS_COMPILE=$(IPL_CROSS_COMPILE) $(ANDROID_MAKE) IPL_OUT=$(IPL_OUT) \
-	 RCAR_DRAM_SPLIT=$(RCAR_DRAM_SPLIT) RCAR_LOSSY_ENABLE=$(RCAR_LOSSY_ENABLE) \
-	  -e MAKEFLAGS= $(PLATFORM_FLAGS) -C $(IPL_SRC) all
+include $(CLEAR_VARS)
+LOCAL_MODULE                := bootparam_sa0.srec
+LOCAL_PREBUILT_MODULE_FILE  := $(IPL_SA0_SREC)
+LOCAL_MODULE_PATH           := $(PRODUCT_OUT)
+LOCAL_MODULE_CLASS          := EXECUTABLES
+include $(BUILD_PREBUILT)
+$(LOCAL_BUILT_MODULE): $(LOCAL_PREBUILT_MODULE_FILE)
 
+include $(CLEAR_VARS)
+LOCAL_MODULE                := cert_header_sa6.bin
+LOCAL_PREBUILT_MODULE_FILE  := $(IPL_SA6_BINARY)
+LOCAL_MODULE_PATH           := $(PRODUCT_OUT)
+LOCAL_MODULE_CLASS          := EXECUTABLES
+include $(BUILD_PREBUILT)
+$(LOCAL_BUILT_MODULE): $(LOCAL_PREBUILT_MODULE_FILE)
 
+include $(CLEAR_VARS)
+LOCAL_MODULE                := cert_header_sa6.srec
+LOCAL_PREBUILT_MODULE_FILE  := $(IPL_SA6_SREC)
+LOCAL_MODULE_PATH           := $(PRODUCT_OUT)
+LOCAL_MODULE_CLASS          := EXECUTABLES
+include $(BUILD_PREBUILT)
+$(LOCAL_BUILT_MODULE): $(LOCAL_PREBUILT_MODULE_FILE)
 
-.PHONY: bootparam_sa0.bin
-bootparam_sa0.bin: android_dummy
-	cp $(IPL_DUMMY_OUT)/tools/dummy_create/bootparam_sa0.bin $(PRODUCT_OUT_ABS)
+include $(CLEAR_VARS)
+LOCAL_MODULE                := bl2.bin
+LOCAL_PREBUILT_MODULE_FILE  := $(IPL_BL2_BINARY)
+LOCAL_MODULE_PATH           := $(PRODUCT_OUT)
+LOCAL_MODULE_CLASS          := EXECUTABLES
+include $(BUILD_PREBUILT)
+$(LOCAL_BUILT_MODULE): $(LOCAL_PREBUILT_MODULE_FILE)
 
-.PHONY: bootparam_sa0.srec
-bootparam_sa0.srec: android_dummy_hf
-	cp $(IPL_DUMMY_OUT)/tools/dummy_create/bootparam_sa0.srec $(PRODUCT_OUT_ABS)
+include $(CLEAR_VARS)
+LOCAL_MODULE                := bl2.srec
+LOCAL_PREBUILT_MODULE_FILE  := $(IPL_BL2_SREC)
+LOCAL_MODULE_PATH           := $(PRODUCT_OUT)
+LOCAL_MODULE_CLASS          := EXECUTABLES
+include $(BUILD_PREBUILT)
+$(LOCAL_BUILT_MODULE): $(LOCAL_PREBUILT_MODULE_FILE)
 
-.PHONY: cert_header_sa6.bin
-cert_header_sa6.bin: android_dummy
-	cp $(IPL_DUMMY_OUT)/tools/dummy_create/cert_header_sa6.bin $(PRODUCT_OUT_ABS)
+include $(CLEAR_VARS)
+LOCAL_MODULE                := bl31.bin
+LOCAL_PREBUILT_MODULE_FILE  := $(IPL_BL31_BINARY)
+LOCAL_MODULE_PATH           := $(PRODUCT_OUT)
+LOCAL_MODULE_CLASS          := EXECUTABLES
+include $(BUILD_PREBUILT)
+$(LOCAL_BUILT_MODULE): $(LOCAL_PREBUILT_MODULE_FILE)
 
-.PHONY: cert_header_sa6.srec
-cert_header_sa6.srec: android_dummy_hf
-	cp $(IPL_DUMMY_OUT)/tools/dummy_create/cert_header_sa6.srec $(PRODUCT_OUT_ABS)
-
-
-.PHONY: bl2.bin
-bl2.bin: android_ipl
-	cp $(IPL_OUT)/rcar/${BUILD}/bl2.bin $(PRODUCT_OUT_ABS)/bl2.bin
-
-.PHONY: bl31.bin
-bl31.bin: android_ipl
-	cp $(IPL_OUT)/rcar/${BUILD}/bl31.bin $(PRODUCT_OUT_ABS)/bl31.bin
-
-.PHONY: bl2.srec
-bl2.srec: android_ipl
-	cp $(IPL_OUT)/rcar/${BUILD}/bl2.srec $(PRODUCT_OUT_ABS)/bl2.srec
-
-.PHONY: bl31.srec
-bl31.srec: android_ipl
-	cp $(IPL_OUT)/rcar/${BUILD}/bl31.srec $(PRODUCT_OUT_ABS)/bl31.srec
-
+include $(CLEAR_VARS)
+LOCAL_MODULE                := bl31.srec
+LOCAL_PREBUILT_MODULE_FILE  := $(IPL_BL31_SREC)
+LOCAL_MODULE_PATH           := $(PRODUCT_OUT)
+LOCAL_MODULE_CLASS          := EXECUTABLES
+include $(BUILD_PREBUILT)
+$(LOCAL_BUILT_MODULE): $(LOCAL_PREBUILT_MODULE_FILE)
 
 endif # TARGET_PRODUCT salvator ulcb kingfisher
