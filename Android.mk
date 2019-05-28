@@ -17,26 +17,34 @@
 # Include only for Renesas ones.
 ifneq (,$(filter $(TARGET_PRODUCT), salvator ulcb kingfisher))
 
+IPL_BUILD           := release
+
 IPL_SRC             := $(abspath ./device/renesas/bootloaders/ipl)
 IPL_SA_SRC          := $(abspath ./device/renesas/bootloaders/ipl/tools/dummy_create)
 
+# bl2 bl31 build output
 IPL_OUT             := $(PRODUCT_OUT)/obj/IPL_OBJ
-IPL_SA_OUT          := $(PRODUCT_OUT)/obj/IPL_OBJ/tools/dummy_create
 IPL_OUT_ABS         := $(abspath $(IPL_OUT))
-IPL_SA_OUT_ABS      := $(abspath $(IPL_SA_OUT))
-IPL_BUILD           := release
+
+# SA0 SA6 for bootloader.img build output
+IPL_SA_OUT          := $(PRODUCT_OUT)/obj/IPL_SA_OBJ
+IPL_SA_SRC_ABS      := $(abspath $(IPL_SA_OUT))/tools/dummy_create
+
+# SA0 SA6 SREC (HyperFlash) build output
+IPL_SA_HF_OUT       := $(PRODUCT_OUT)/obj/IPL_SA_HF_OBJ
+IPL_SA_HF_SRC_ABS   := $(abspath $(IPL_SA_HF_OUT))/tools/dummy_create
 
 ifeq ($(DEBUG),1)
     IPL_BUILD := debug
 endif
 
-IPL_SA0_BINARY      := $(IPL_SA_OUT)/bootparam_sa0.bin
-IPL_SA6_BINARY      := $(IPL_SA_OUT)/cert_header_sa6.bin
+IPL_SA0_BINARY      := $(IPL_SA_OUT)/tools/dummy_create/bootparam_sa0.bin
+IPL_SA6_BINARY      := $(IPL_SA_OUT)/tools/dummy_create/cert_header_sa6.bin
 IPL_BL2_BINARY      := $(IPL_OUT)/rcar/$(IPL_BUILD)/bl2.bin
 IPL_BL31_BINARY     := $(IPL_OUT)/rcar/$(IPL_BUILD)/bl31.bin
 
-IPL_SA0_SREC        := $(IPL_SA_OUT)/bootparam_sa0.srec
-IPL_SA6_SREC        := $(IPL_SA_OUT)/cert_header_sa6.srec
+IPL_SA0_SREC        := $(IPL_SA_HF_OUT)/tools/dummy_create/bootparam_sa0.srec
+IPL_SA6_SREC        := $(IPL_SA_HF_OUT)/tools/dummy_create/cert_header_sa6.srec
 IPL_BL2_SREC        := $(IPL_OUT)/rcar/$(IPL_BUILD)/bl2.srec
 IPL_BL31_SREC       := $(IPL_OUT)/rcar/$(IPL_BUILD)/bl31.srec
 
@@ -116,27 +124,33 @@ PLATFORM_FLAGS += \
 $(IPL_OUT):
 	$(MKDIR) -p $(IPL_OUT)
 
-$(IPL_SA_OUT): $(IPL_OUT)
-	cp -R $(IPL_SRC)/tools $(IPL_OUT)/
-	cp -R $(IPL_SRC)/include $(IPL_OUT)/
+$(IPL_SA_OUT):
+	$(MKDIR) -p $(IPL_SA_OUT)
+	cp -R $(IPL_SRC)/tools $(IPL_SA_OUT)/
+	cp -R $(IPL_SRC)/include $(IPL_SA_OUT)/
+
+$(IPL_SA_HF_OUT):
+	$(MKDIR) -p $(IPL_SA_HF_OUT)
+	cp -R $(IPL_SRC)/tools $(IPL_SA_HF_OUT)/
+	cp -R $(IPL_SRC)/include $(IPL_SA_HF_OUT)/
 
 $(IPL_SA0_BINARY) : $(IPL_SA_OUT)
 	export $(PLATFORM_FLAGS)
-	$(ANDROID_MAKE) $(PLATFORM_FLAGS) -C $(IPL_SA_OUT_ABS) clean
-	$(ANDROID_MAKE) $(PLATFORM_FLAGS) CPPFLAGS="-D=AARCH64" -C $(IPL_SA_OUT_ABS) all
+	$(ANDROID_MAKE) $(PLATFORM_FLAGS) -C $(IPL_SA_SRC_ABS) clean
+	$(ANDROID_MAKE) $(PLATFORM_FLAGS) CPPFLAGS="-D=AARCH64" -C $(IPL_SA_SRC_ABS) all
 
 $(IPL_SA6_BINARY) : $(IPL_SA0_BINARY)
 
-$(IPL_SA0_SREC) : $(IPL_SA_OUT)
+$(IPL_SA0_SREC) : $(IPL_SA_HF_OUT)
 	export $(PLATFORM_FLAGS)
-	$(ANDROID_MAKE) $(PLATFORM_FLAGS) -C $(IPL_SA_OUT_ABS) clean
-	$(ANDROID_MAKE) $(PLATFORM_FLAGS) CPPFLAGS="-D=AARCH64" RCAR_SA6_TYPE=0 -C $(IPL_SA_OUT_ABS) all
+	$(ANDROID_MAKE) $(PLATFORM_FLAGS) -C $(IPL_SA_HF_SRC_ABS) clean
+	$(ANDROID_MAKE) $(PLATFORM_FLAGS) CPPFLAGS="-D=AARCH64" RCAR_SA6_TYPE=0 -C $(IPL_SA_HF_SRC_ABS) all
 
 $(IPL_SA6_SREC) : $(IPL_SA0_SREC)
 
 $(IPL_BL2_BINARY) : $(IPL_OUT)
 	export $(PLATFORM_FLAGS)
-	$(ANDROID_MAKE) IPL_OUT=$(IPL_OUT_ABS) $(PLATFORM_FLAGS) -C $(IPL_SRC) distclean
+	$(ANDROID_MAKE) IPL_OUT=$(IPL_OUT_ABS) $(PLATFORM_FLAGS) -C $(IPL_SRC) clean
 	$(ANDROID_MAKE) IPL_OUT=$(IPL_OUT_ABS) $(PLATFORM_FLAGS) -C $(IPL_SRC) all
 
 $(IPL_BL31_BINARY) : $(IPL_BL2_BINARY)
