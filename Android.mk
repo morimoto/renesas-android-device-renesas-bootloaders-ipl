@@ -17,36 +17,37 @@
 # Include only for Renesas ones.
 ifneq (,$(filter $(TARGET_PRODUCT), salvator ulcb kingfisher))
 
+PRODUCT_OUT_ABS     := $(abspath $(PRODUCT_OUT))
+
 IPL_BUILD           := release
 
 IPL_SRC             := $(abspath ./device/renesas/bootloaders/ipl)
 IPL_SA_SRC          := $(abspath ./device/renesas/bootloaders/ipl/tools/dummy_create)
 
 # bl2 bl31 build output
-IPL_OUT             := $(PRODUCT_OUT)/obj/IPL_OBJ
-IPL_OUT_ABS         := $(abspath $(IPL_OUT))
+IPL_OUT_ABS         := $(PRODUCT_OUT_ABS)/obj/IPL_OBJ
 
 # SA0 SA6 for bootloader.img build output
-IPL_SA_OUT          := $(PRODUCT_OUT)/obj/IPL_SA_OBJ
-IPL_SA_SRC_ABS      := $(abspath $(IPL_SA_OUT))/tools/dummy_create
+IPL_SA_OUT_ABS      := $(PRODUCT_OUT_ABS)/obj/IPL_SA_OBJ
+IPL_SA_SRC_ABS      := $(IPL_SA_OUT_ABS)/tools/dummy_create
 
 # SA0 SA6 SREC (HyperFlash) build output
-IPL_SA_HF_OUT       := $(PRODUCT_OUT)/obj/IPL_SA_HF_OBJ
-IPL_SA_HF_SRC_ABS   := $(abspath $(IPL_SA_HF_OUT))/tools/dummy_create
+IPL_SA_HF_OUT_ABS   := $(PRODUCT_OUT_ABS)/obj/IPL_SA_HF_OBJ
+IPL_SA_HF_SRC_ABS   := $(IPL_SA_HF_OUT_ABS)/tools/dummy_create
 
 ifeq ($(DEBUG),1)
     IPL_BUILD := debug
 endif
 
-IPL_SA0_BINARY      := $(IPL_SA_OUT)/tools/dummy_create/bootparam_sa0.bin
-IPL_SA6_BINARY      := $(IPL_SA_OUT)/tools/dummy_create/cert_header_sa6.bin
-IPL_BL2_BINARY      := $(IPL_OUT)/rcar/$(IPL_BUILD)/bl2.bin
-IPL_BL31_BINARY     := $(IPL_OUT)/rcar/$(IPL_BUILD)/bl31.bin
+IPL_SA0_BINARY      := $(IPL_SA_OUT_ABS)/tools/dummy_create/bootparam_sa0.bin
+IPL_SA6_BINARY      := $(IPL_SA_OUT_ABS)/tools/dummy_create/cert_header_sa6.bin
+IPL_BL2_BINARY      := $(IPL_OUT_ABS)/rcar/$(IPL_BUILD)/bl2.bin
+IPL_BL31_BINARY     := $(IPL_OUT_ABS)/rcar/$(IPL_BUILD)/bl31.bin
 
-IPL_SA0_SREC        := $(IPL_SA_HF_OUT)/tools/dummy_create/bootparam_sa0.srec
-IPL_SA6_SREC        := $(IPL_SA_HF_OUT)/tools/dummy_create/cert_header_sa6.srec
-IPL_BL2_SREC        := $(IPL_OUT)/rcar/$(IPL_BUILD)/bl2.srec
-IPL_BL31_SREC       := $(IPL_OUT)/rcar/$(IPL_BUILD)/bl31.srec
+IPL_SA0_SREC        := $(IPL_SA_HF_OUT_ABS)/tools/dummy_create/bootparam_sa0.srec
+IPL_SA6_SREC        := $(IPL_SA_HF_OUT_ABS)/tools/dummy_create/cert_header_sa6.srec
+IPL_BL2_SREC        := $(IPL_OUT_ABS)/rcar/$(IPL_BUILD)/bl2.srec
+IPL_BL31_SREC       := $(IPL_OUT_ABS)/rcar/$(IPL_BUILD)/bl31.srec
 
 PLATFORM_FLAGS := \
     PLAT=rcar \
@@ -121,106 +122,46 @@ PLATFORM_FLAGS += \
 PLATFORM_FLAGS += \
     RCAR_LOSSY_ENABLE=1
 
-$(IPL_OUT):
-	$(MKDIR) -p $(IPL_OUT)
-
-$(IPL_SA_OUT):
-	$(MKDIR) -p $(IPL_SA_OUT)
-	cp -R $(IPL_SRC)/tools $(IPL_SA_OUT)/
-	cp -R $(IPL_SRC)/include $(IPL_SA_OUT)/
-
-$(IPL_SA_HF_OUT):
-	$(MKDIR) -p $(IPL_SA_HF_OUT)
-	cp -R $(IPL_SRC)/tools $(IPL_SA_HF_OUT)/
-	cp -R $(IPL_SRC)/include $(IPL_SA_HF_OUT)/
-
-$(IPL_SA0_BINARY) : $(IPL_SA_OUT)
+ipl_sa:
+	$(MKDIR) -p $(IPL_SA_OUT_ABS)
+	cp -R $(IPL_SRC)/tools $(IPL_SA_OUT_ABS)/
+	cp -R $(IPL_SRC)/include $(IPL_SA_OUT_ABS)/
 	export $(PLATFORM_FLAGS)
 	$(ANDROID_MAKE) $(PLATFORM_FLAGS) -C $(IPL_SA_SRC_ABS) clean
 	$(ANDROID_MAKE) $(PLATFORM_FLAGS) CPPFLAGS="-D=AARCH64" -C $(IPL_SA_SRC_ABS) all
+	cp -vF $(IPL_SA0_BINARY) $(IPL_SA6_BINARY) $(PRODUCT_OUT_ABS)/
 
-$(IPL_SA6_BINARY) : $(IPL_SA0_BINARY)
-
-$(IPL_SA0_SREC) : $(IPL_SA_HF_OUT)
+ipl_sa_hf:
+	$(MKDIR) -p $(IPL_SA_HF_OUT_ABS)
+	cp -R $(IPL_SRC)/tools $(IPL_SA_HF_OUT_ABS)/
+	cp -R $(IPL_SRC)/include $(IPL_SA_HF_OUT_ABS)/
 	export $(PLATFORM_FLAGS)
 	$(ANDROID_MAKE) $(PLATFORM_FLAGS) -C $(IPL_SA_HF_SRC_ABS) clean
 	$(ANDROID_MAKE) $(PLATFORM_FLAGS) CPPFLAGS="-D=AARCH64" RCAR_SA6_TYPE=0 -C $(IPL_SA_HF_SRC_ABS) all
+	cp -vF $(IPL_SA0_SREC) $(IPL_SA6_SREC) $(PRODUCT_OUT_ABS)/
 
-$(IPL_SA6_SREC) : $(IPL_SA0_SREC)
-
-$(IPL_BL2_BINARY) : $(IPL_OUT)
+ipl_bl:
+	$(MKDIR) -p $(IPL_OUT_ABS)
 	export $(PLATFORM_FLAGS)
 	$(ANDROID_MAKE) IPL_OUT=$(IPL_OUT_ABS) $(PLATFORM_FLAGS) -C $(IPL_SRC) clean
 	$(ANDROID_MAKE) IPL_OUT=$(IPL_OUT_ABS) $(PLATFORM_FLAGS) -C $(IPL_SRC) all
-
-$(IPL_BL31_BINARY) : $(IPL_BL2_BINARY)
-$(IPL_BL2_SREC) : $(IPL_BL2_BINARY)
-$(IPL_BL31_SREC) : $(IPL_BL31_BINARY)
+	cp -vF $(IPL_BL2_BINARY) $(IPL_BL31_BINARY) $(IPL_BL2_SREC) $(IPL_BL31_SREC) $(PRODUCT_OUT_ABS)/
 
 # ----------------------------------------------------------------------
 
 include $(CLEAR_VARS)
-LOCAL_MODULE                := bootparam_sa0.bin
-LOCAL_PREBUILT_MODULE_FILE  := $(IPL_SA0_BINARY)
-LOCAL_MODULE_PATH           := $(PRODUCT_OUT)
-LOCAL_MODULE_CLASS          := EXECUTABLES
-include $(BUILD_PREBUILT)
-$(LOCAL_BUILT_MODULE): $(LOCAL_PREBUILT_MODULE_FILE)
+LOCAL_MODULE                := ipl_sa
+LOCAL_MODULE_TAGS           := optional
+include $(BUILD_PHONY_PACKAGE)
 
 include $(CLEAR_VARS)
-LOCAL_MODULE                := bootparam_sa0.srec
-LOCAL_PREBUILT_MODULE_FILE  := $(IPL_SA0_SREC)
-LOCAL_MODULE_PATH           := $(PRODUCT_OUT)
-LOCAL_MODULE_CLASS          := EXECUTABLES
-include $(BUILD_PREBUILT)
-$(LOCAL_BUILT_MODULE): $(LOCAL_PREBUILT_MODULE_FILE)
+LOCAL_MODULE                := ipl_sa_hf
+LOCAL_MODULE_TAGS           := optional
+include $(BUILD_PHONY_PACKAGE)
 
 include $(CLEAR_VARS)
-LOCAL_MODULE                := cert_header_sa6.bin
-LOCAL_PREBUILT_MODULE_FILE  := $(IPL_SA6_BINARY)
-LOCAL_MODULE_PATH           := $(PRODUCT_OUT)
-LOCAL_MODULE_CLASS          := EXECUTABLES
-include $(BUILD_PREBUILT)
-$(LOCAL_BUILT_MODULE): $(LOCAL_PREBUILT_MODULE_FILE)
-
-include $(CLEAR_VARS)
-LOCAL_MODULE                := cert_header_sa6.srec
-LOCAL_PREBUILT_MODULE_FILE  := $(IPL_SA6_SREC)
-LOCAL_MODULE_PATH           := $(PRODUCT_OUT)
-LOCAL_MODULE_CLASS          := EXECUTABLES
-include $(BUILD_PREBUILT)
-$(LOCAL_BUILT_MODULE): $(LOCAL_PREBUILT_MODULE_FILE)
-
-include $(CLEAR_VARS)
-LOCAL_MODULE                := bl2.bin
-LOCAL_PREBUILT_MODULE_FILE  := $(IPL_BL2_BINARY)
-LOCAL_MODULE_PATH           := $(PRODUCT_OUT)
-LOCAL_MODULE_CLASS          := EXECUTABLES
-include $(BUILD_PREBUILT)
-$(LOCAL_BUILT_MODULE): $(LOCAL_PREBUILT_MODULE_FILE)
-
-include $(CLEAR_VARS)
-LOCAL_MODULE                := bl2.srec
-LOCAL_PREBUILT_MODULE_FILE  := $(IPL_BL2_SREC)
-LOCAL_MODULE_PATH           := $(PRODUCT_OUT)
-LOCAL_MODULE_CLASS          := EXECUTABLES
-include $(BUILD_PREBUILT)
-$(LOCAL_BUILT_MODULE): $(LOCAL_PREBUILT_MODULE_FILE)
-
-include $(CLEAR_VARS)
-LOCAL_MODULE                := bl31.bin
-LOCAL_PREBUILT_MODULE_FILE  := $(IPL_BL31_BINARY)
-LOCAL_MODULE_PATH           := $(PRODUCT_OUT)
-LOCAL_MODULE_CLASS          := EXECUTABLES
-include $(BUILD_PREBUILT)
-$(LOCAL_BUILT_MODULE): $(LOCAL_PREBUILT_MODULE_FILE)
-
-include $(CLEAR_VARS)
-LOCAL_MODULE                := bl31.srec
-LOCAL_PREBUILT_MODULE_FILE  := $(IPL_BL31_SREC)
-LOCAL_MODULE_PATH           := $(PRODUCT_OUT)
-LOCAL_MODULE_CLASS          := EXECUTABLES
-include $(BUILD_PREBUILT)
-$(LOCAL_BUILT_MODULE): $(LOCAL_PREBUILT_MODULE_FILE)
+LOCAL_MODULE                := ipl_bl
+LOCAL_MODULE_TAGS           := optional
+include $(BUILD_PHONY_PACKAGE)
 
 endif # TARGET_PRODUCT salvator ulcb kingfisher
