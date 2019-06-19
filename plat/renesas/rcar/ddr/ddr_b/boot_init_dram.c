@@ -30,7 +30,7 @@
 #endif
 
 #if (LOG_LEVEL >= LOG_LEVEL_NOTICE)
-# define NOTICE(...)   if (*((uint64_t *)RCAR_SRAM_STASH) != RCAR_SRAM_NICK) { tf_printf("NOTICE:  " __VA_ARGS__); }
+# define NOTICE(...)	do { if (*((uint64_t *)RCAR_SRAM_STASH) != RCAR_SRAM_NICK) { tf_printf("NOTICE:  " __VA_ARGS__); } } while(0)
 #else
 # define NOTICE(...)
 #endif
