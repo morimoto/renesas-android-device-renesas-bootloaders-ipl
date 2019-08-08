@@ -3920,6 +3920,10 @@ int32_t InitDram(void)
 		FATAL_MSG("BL2: DDR:Unknown Board\n");
 		return 0xff;
 	}
+#if (RCAR_DRAM_LPDDR4_MEMCONF == 3)
+	if (*((uint64_t *)RCAR_SRAM_STASH) == RCAR_SRAM_NICK && _cnf_BOARDTYPE == 8)
+		_cnf_BOARDTYPE = 7;
+#endif
 	Boardcnf = (const struct _boardcnf *)&boardcnfs[_cnf_BOARDTYPE];
 
 /* RCAR_DRAM_SPLIT_2CH		(2U) */
