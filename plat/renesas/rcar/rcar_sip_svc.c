@@ -110,7 +110,6 @@ static uintptr_t rcar_sip_handler(unsigned int smc_fid,
 
 #if RCAR_SMC_GET_DRAMCONF
 
-#define BANKSIZE_SHIFT 28
 static int32_t rcar_sip_get_dramconf2(uint32_t * bank_num, uint32_t * bank_size)
 {
 	int32_t			ret = RCAR_SMC_RET_SUCCESS;
@@ -133,7 +132,7 @@ static int32_t rcar_sip_get_dramconf2(uint32_t * bank_num, uint32_t * bank_size)
 			else
 				break;
 		}
-		*bank_size = (uint32_t)(dram_conf.Size[0] >> BANKSIZE_SHIFT);
+		*bank_size = (uint32_t)dram_conf.Size[0];
 	}
 
 	return ret;
