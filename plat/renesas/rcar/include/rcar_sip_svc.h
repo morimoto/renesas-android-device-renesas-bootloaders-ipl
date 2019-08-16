@@ -21,10 +21,6 @@
 /* Function ID to get the Board type */
 #define RCAR_SIP_SVC_GET_BOARD_TYPE	U(0x82000001)
 
-/* Function ID to get the Dramconf#2
-(light way, without huge copying) */
-#define RCAR_SIP_SVC_GET_DRAMCONF2	U(0x82000002)
-
 /* Rcar SiP Service Calls version numbers */
 #define RCAR_SIP_SVC_VERSION_MAJOR	U(0x0)
 #define RCAR_SIP_SVC_VERSION_MINOR	U(0x2)

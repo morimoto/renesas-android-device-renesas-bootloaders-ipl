@@ -25,7 +25,6 @@
 
 #if RCAR_SMC_GET_DRAMCONF
 static int32_t rcar_sip_get_dramconf(u_register_t addr);
-static int32_t rcar_sip_get_dramconf2(uint32_t *, uint32_t *);
 #endif
 
 /* Rcar SiP Service UUID */
@@ -50,8 +49,6 @@ static uintptr_t rcar_sip_handler(unsigned int smc_fid,
 	int32_t		board_ret = RCAR_SMC_RET_SUCCESS;
 	uint32_t	board_type = 0U;
 	uint32_t	board_rev = 0U;
-	uint32_t	bank_num = 0U;
-	uint32_t	bank_size = 0ULL;
 
 	switch (smc_fid) {
 	case RCAR_SIP_SVC_GET_DRAMCONF:
@@ -62,15 +59,6 @@ static uintptr_t rcar_sip_handler(unsigned int smc_fid,
 		ret = SMC_UNK;
 #endif
 		SMC_RET1(handle, ret);
-
-	case RCAR_SIP_SVC_GET_DRAMCONF2:
-		/* get Dramconf */
-#if RCAR_SMC_GET_DRAMCONF
-		ret = rcar_sip_get_dramconf2(&bank_num, &bank_size);
-#else
-		ret = SMC_UNK;
-#endif
-		SMC_RET3(handle, ret, bank_num, bank_size);
 
 	case RCAR_SIP_SVC_GET_BOARD_TYPE:
 		/* get Board type */
@@ -109,35 +97,6 @@ static uintptr_t rcar_sip_handler(unsigned int smc_fid,
 }
 
 #if RCAR_SMC_GET_DRAMCONF
-
-static int32_t rcar_sip_get_dramconf2(uint32_t * bank_num, uint32_t * bank_size)
-{
-	int32_t			ret = RCAR_SMC_RET_SUCCESS;
-	uint32_t		dram_ret;
-	rcar_dram_conf_t	dram_conf;
-	int		i;
-
-	dram_ret = rcar_get_dram_conf(&dram_conf);
-	if (RCAR_DRAMCONF_RET_SUCCESS != dram_ret) {
-		ERROR("RCAR dramconf get_dram_conf err ret=%d.\n",
-							dram_ret);
-		ret = RCAR_SMC_RET_EFAILED;
-	}
-
-	if(RCAR_SMC_RET_SUCCESS == ret) {
-		*bank_num = 0;
-		for (i = 0; i < 4; i++) {
-			if (dram_conf.Address[i])
-				(*bank_num)++;
-			else
-				break;
-		}
-		*bank_size = (uint32_t)dram_conf.Size[0];
-	}
-
-	return ret;
-}
-
 static int32_t rcar_sip_get_dramconf(u_register_t addr)
 {
 	int32_t			ret = RCAR_SMC_RET_SUCCESS;
