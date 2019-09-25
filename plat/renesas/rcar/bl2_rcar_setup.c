@@ -423,6 +423,7 @@ static void rcar_bl2_early_platform_setup(const meminfo_t *mem_layout)
 	int32_t ret;
 	uint32_t board_rev;
 	uint32_t prr_val;
+	uint32_t ddrBackup;
 	char msg[128];
 	const char *str;
 	const char *cpu_ca57        = "CA57";
@@ -660,7 +661,7 @@ static void rcar_bl2_early_platform_setup(const meminfo_t *mem_layout)
 	bl2_avs_end();
 
 	/* Save BKUP_TRG for SuspendToRAM */
-	(void)isDdrBackupMode();
+	ddrBackup = isDdrBackupMode();
 
 	/* Setup the BL2 memory layout */
 	bl2_tzram_layout = *mem_layout;
@@ -792,6 +793,10 @@ static void rcar_bl2_early_platform_setup(const meminfo_t *mem_layout)
 	bl2_lossy_setting(2U, LOSSY_ST_ADDR2, LOSSY_END_ADDR2,
 		LOSSY_FMT2, LOSSY_ENA_DIS2);
 #endif /* #if (RCAR_LOSSY_ENABLE == 1) */
+
+	/* Skip redundant images checking in case of the "warm" boot */
+	if (ddrBackup)
+		return;
 
 	if (isSwitchPressed()) {
 		NOTICE("BL2: Force boot from HyperFlash.\n");
