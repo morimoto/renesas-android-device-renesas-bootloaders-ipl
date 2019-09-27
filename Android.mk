@@ -122,6 +122,16 @@ PLATFORM_FLAGS += \
 PLATFORM_FLAGS += \
     RCAR_LOSSY_ENABLE=1
 
+IPL_SCAN_BUILD_CMD := $(abspath $(LLVM_PREBUILTS_PATH)/scan-build) \
+	-o $(OUT_DIR)/sb-reports/ipl --use-analyzer \
+	$(abspath $(LLVM_PREBUILTS_PATH)/clang) \
+	--use-cc $(BSP_GCC_CROSS_COMPILE)gcc \
+	--analyzer-target=aarch64-linux-gnu \
+	--force-analyze-debug-code -analyze-headers
+
+IPL_BL_BUILD_CMD := SCAN_BUILD=1 $(ANDROID_MAKE) -C $(IPL_SRC) \
+	IPL_OUT=$(IPL_OUT_ABS) $(PLATFORM_FLAGS) all
+
 ipl_sa:
 	$(MKDIR) -p $(IPL_SA_OUT_ABS)
 	cp -R $(IPL_SRC)/tools $(IPL_SA_OUT_ABS)/
@@ -147,6 +157,13 @@ ipl_bl:
 	$(ANDROID_MAKE) IPL_OUT=$(IPL_OUT_ABS) $(PLATFORM_FLAGS) -C $(IPL_SRC) all
 	cp -vF $(IPL_BL2_BINARY) $(IPL_BL31_BINARY) $(IPL_BL2_SREC) $(IPL_BL31_SREC) $(PRODUCT_OUT_ABS)/
 
+scan-build-ipl_bl:
+	@echo "Starting scan-build for IPLs"
+	$(MKDIR) -p $(IPL_OUT_ABS)
+	export $(PLATFORM_FLAGS)
+	$(ANDROID_MAKE) IPL_OUT=$(IPL_OUT_ABS) $(PLATFORM_FLAGS) -C $(IPL_SRC) clean
+	$(IPL_SCAN_BUILD_CMD) /bin/bash -c "$(IPL_BL_BUILD_CMD)"
+
 # ----------------------------------------------------------------------
 
 include $(CLEAR_VARS)
@@ -161,6 +178,11 @@ include $(BUILD_PHONY_PACKAGE)
 
 include $(CLEAR_VARS)
 LOCAL_MODULE                := ipl_bl
+LOCAL_MODULE_TAGS           := optional
+include $(BUILD_PHONY_PACKAGE)
+
+include $(CLEAR_VARS)
+LOCAL_MODULE                := scan-build-ipl_bl
 LOCAL_MODULE_TAGS           := optional
 include $(BUILD_PHONY_PACKAGE)
 

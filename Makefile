@@ -117,7 +117,12 @@ endif
 HOSTCC			:=	gcc
 export HOSTCC
 
+ifeq ($(SCAN_BUILD),1)
+CC			:=	$(CC)
+else
 CC			:=	${CROSS_COMPILE}gcc
+endif
+
 CPP			:=	${CROSS_COMPILE}cpp
 AS			:=	${CROSS_COMPILE}gcc
 AR			:=	${CROSS_COMPILE}ar
