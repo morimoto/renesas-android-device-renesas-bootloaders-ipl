@@ -97,4 +97,6 @@ AvbABFlowResult avb_ab_flow(void);
 
 int32_t avb_get_boot_partition_idx(void);
 
+uint32_t avb_ab_is_success(void);
+
 #endif /* BL2_AVB_AB_FLOW_H */

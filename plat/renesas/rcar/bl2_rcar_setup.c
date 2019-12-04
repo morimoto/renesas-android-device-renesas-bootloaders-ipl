@@ -313,6 +313,13 @@ struct entry_point_info *bl2_plat_get_bl31_ep_info(void)
 	int32_t ret;
 
 	modemr = mmio_read_32(RCAR_MODEMR);
+#if (RCAR_BOOT_EMMC == 1)
+	/* Use eMMC driver in case if avb verification has succeeded */
+	if (avb_ab_is_success()) {
+		modemr &= ~MODEMR_BOOT_DEV_MASK;
+		modemr |= MODEMR_BOOT_DEV_EMMC_50X8;
+	}
+#endif
 	modemr_boot_dev = modemr & MODEMR_BOOT_DEV_MASK;
 
 	if (isDdrBackupMode() != 0U) {

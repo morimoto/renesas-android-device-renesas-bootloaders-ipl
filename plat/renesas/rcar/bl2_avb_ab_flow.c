@@ -485,6 +485,7 @@ static AvbABFlowResult avb_ab_get_curr_slot(const AvbABData *data, int *slot_idx
 }
 
 static int32_t boot_partition = 0;
+static uint32_t avb_ab_flow_success = 0;
 
 static void avb_ab_set_boot_partition(int slot_idx)
 {
@@ -560,6 +561,7 @@ AvbABFlowResult avb_ab_flow(void)
 
 select_part:
 	avb_ab_set_boot_partition(slot_to_boot);
+	avb_ab_flow_success = 1;
 
 	return AVB_AB_FLOW_RESULT_OK;
 }
@@ -567,4 +569,9 @@ select_part:
 int32_t avb_get_boot_partition_idx(void)
 {
 	return boot_partition;
+}
+
+uint32_t avb_ab_is_success(void)
+{
+	return avb_ab_flow_success;
 }
