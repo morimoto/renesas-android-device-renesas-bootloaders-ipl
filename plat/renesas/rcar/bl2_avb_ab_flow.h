@@ -99,4 +99,43 @@ int32_t avb_get_boot_partition_idx(void);
 
 uint32_t avb_ab_is_success(void);
 
+enum MergeStatus {
+	/*
+	 * No snapshot or merge is in progress.
+	 */
+	VIRTUAL_AB_NONE,
+
+	/*
+	 * The merge status could not be determined.
+	 */
+	VIRTUAL_AB_UNKNOWN,
+
+	/*
+	 * Partitions are being snapshotted, but no merge has been started.
+	 */
+	VIRTUAL_AB_SNAPSHOTED,
+
+	/*
+	 * At least one partition has merge is in progress.
+	 */
+	VIRTUAL_AB_MERGING,
+
+	/*
+	 * A merge was in progress, but it was canceled by the bootloader.
+	 */
+	VIRTUAL_AB_CANCELLED
+};
+
+typedef struct misc_virtual_ab_message {
+  uint8_t version;
+  uint32_t magic;
+  uint8_t merge_status;
+  uint8_t source_slot; /* Slot number when merge_status was written. */
+  uint8_t reserved[57];
+} __attribute__((packed)) MiscVirtABMsg;
+
+#define MAX_VIRTUAL_AB_MESSAGE_VERSION 2
+#define MISC_VIRTUAL_AB_MAGIC_HEADER 0x56740AB0
+#define AVB_AB_MAX_SLOTS 2
+
 #endif /* BL2_AVB_AB_FLOW_H */

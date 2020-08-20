@@ -37,7 +37,11 @@
 #include "ipl_emmc.h"
 #include "avb_sha.h"
 
+/* 2048 bytes offset on misc = 4 sectors */
 #define AVB_BLOCK_DATA_OFFSET		(0x4)
+/* 32768 bytes offset = 64 sectors = 0x40 */
+#define VIRTUAL_AB_MSG_DATA_OFFSET	(0x40)
+
 #define USER_PARTITION			(0x0)
 #define USE_DMA				(0x1)
 #define WITHOUT_DMA			(0x0)
@@ -350,22 +354,33 @@ static int avb_ab_slot_is_bootable(const AvbABSlotData *slot_data)
 				|| (slot_data->tries_remaining > 0));
 }
 
-static AvbABFlowResult avb_ab_write_data(const AvbABData *data)
-{
-	uint8_t buf[EMMC_SECTOR_SIZE];
-	int result = 0;
+static AvbABFlowResult get_misc_part_entry(partition_entry_t *pentry) {
 	gpt_header_t header;
-	partition_entry_t entry;
 
 	if (load_gpt_header(&header, USER_PARTITION)) {
 		ERROR("Failed to load GPT table\n");
 		return AVB_AB_FLOW_RESULT_ERROR_IO;
 	}
 
-	if (get_part_info(USER_PARTITION, &header, &entry, "misc")) {
+	if (get_part_info(USER_PARTITION, &header, pentry, "misc")) {
 		ERROR("Failed to get information from misc partition\n");
 		return AVB_AB_FLOW_RESULT_ERROR_IO;
 	}
+
+	return AVB_AB_FLOW_RESULT_OK;
+}
+
+static AvbABFlowResult read_sector_from_misc(uint32_t *buf, uint32_t blkaddr) {
+	int result = 0;
+	partition_entry_t entry;
+
+	if (!buf) {
+		ERROR("Invalid buffer passed to %s\n", __func__);
+		return AVB_AB_FLOW_RESULT_ERROR_INVALID_ARGUMENT;
+	}
+
+	if (get_misc_part_entry(&entry) != AVB_AB_FLOW_RESULT_OK)
+		return AVB_AB_FLOW_RESULT_ERROR_IO;
 
 	result = emmc_select_partition(USER_PARTITION);
 	if (result != EMMC_SUCCESS) {
@@ -373,20 +388,63 @@ static AvbABFlowResult avb_ab_write_data(const AvbABData *data)
 		return AVB_AB_FLOW_RESULT_ERROR_IO;
 	}
 
-	result = emmc_read_sector((uint32_t *)&buf[0], addr_to_blk(entry.start)
-		+ AVB_BLOCK_DATA_OFFSET, /*Read blocks*/ 1, WITHOUT_DMA);
+	/* Read single block */
+	result = emmc_read_sector(buf, addr_to_blk(entry.start) + blkaddr,
+				1, WITHOUT_DMA);
 	if (result != EMMC_SUCCESS) {
 		ERROR("Failed to read avb a/b block err = (%d)\n", result);
 		return AVB_AB_FLOW_RESULT_ERROR_IO;
 	}
 
-	memcpy(&buf[0], data, sizeof(*data));
+	return AVB_AB_FLOW_RESULT_OK;
+}
 
-	result = emmc_write_sector((uint32_t *)&buf[0], addr_to_blk(entry.start)
-		+ AVB_BLOCK_DATA_OFFSET, /*Write blocks*/ 1, WITHOUT_DMA);
+static AvbABFlowResult write_sector_to_misc(uint32_t *buf, uint32_t blkaddr) {
+	int result = 0;
+	partition_entry_t entry;
+
+	if (!buf) {
+		ERROR("Invalid buffer passed to %s\n", __func__);
+		return AVB_AB_FLOW_RESULT_ERROR_INVALID_ARGUMENT;
+	}
+
+	if (get_misc_part_entry(&entry) != AVB_AB_FLOW_RESULT_OK)
+		return AVB_AB_FLOW_RESULT_ERROR_IO;
+
+	result = emmc_select_partition(USER_PARTITION);
+	if (result != EMMC_SUCCESS) {
+		ERROR("Failed to select user partition err = (%d)\n", result);
+		return AVB_AB_FLOW_RESULT_ERROR_IO;
+	}
+
+	/* Write single block */
+	result = emmc_write_sector(buf, addr_to_blk(entry.start) + blkaddr,
+				1, WITHOUT_DMA);
 	if (result != EMMC_SUCCESS) {
 		ERROR("Failed to write avb a/b block err = (%d)\n", result);
 		return AVB_AB_FLOW_RESULT_ERROR_IO;
+	}
+
+	return AVB_AB_FLOW_RESULT_OK;
+}
+
+static AvbABFlowResult avb_ab_write_data(const AvbABData *data)
+{
+	uint8_t buf[EMMC_SECTOR_SIZE];
+	AvbABFlowResult result = 0;
+
+	result = read_sector_from_misc((uint32_t *)&buf[0], AVB_BLOCK_DATA_OFFSET);
+	if (result != AVB_AB_FLOW_RESULT_OK) {
+		ERROR("Failed to read avb a/b block err = (%d)\n", result);
+		return result;
+	}
+
+	memcpy(&buf[0], data, sizeof(*data));
+
+	result = write_sector_to_misc((uint32_t *)&buf[0], AVB_BLOCK_DATA_OFFSET);
+	if (result != AVB_AB_FLOW_RESULT_OK) {
+		ERROR("Failed to read avb a/b block err = (%d)\n", result);
+		return result;
 	}
 
 	return AVB_AB_FLOW_RESULT_OK;
@@ -418,37 +476,19 @@ static void avb_ab_data_init(AvbABData *data)
 static AvbABFlowResult avb_ab_read_data(AvbABData *data)
 {
 	uint8_t buf[EMMC_SECTOR_SIZE];
-	int result = 0;
-	gpt_header_t header;
-	partition_entry_t entry;
+	AvbABFlowResult result = 0;
 
-	if (load_gpt_header(&header, USER_PARTITION)) {
-		ERROR("Failed to load GPT table\n");
-		return AVB_AB_FLOW_RESULT_ERROR_IO;
-	}
-
-	if (get_part_info(USER_PARTITION, &header, &entry, "misc")) {
-		ERROR("Failed to get information from misc partition\n");
-		return AVB_AB_FLOW_RESULT_ERROR_IO;
-	}
-
-	result = emmc_select_partition(USER_PARTITION);
-	if (result != EMMC_SUCCESS) {
-		ERROR("Failed to select user partition err = (%d)\n", result);
-		return AVB_AB_FLOW_RESULT_ERROR_IO;
-	}
-
-	result = emmc_read_sector((uint32_t *)&buf[0], addr_to_blk(entry.start)
-		+ AVB_BLOCK_DATA_OFFSET, /*Read blocks */ 1, WITHOUT_DMA);
-	if (result != EMMC_SUCCESS) {
+	result = read_sector_from_misc((uint32_t *)&buf[0], AVB_BLOCK_DATA_OFFSET);
+	if (result != AVB_AB_FLOW_RESULT_OK) {
 		ERROR("Failed to read avb a/b block err = (%d)\n", result);
-		return AVB_AB_FLOW_RESULT_ERROR_IO;
+		return result;
 	}
 
 	memcpy(data, &buf[0], sizeof(*data));
 
 	if (avb_ab_check_data(data) != AVB_AB_FLOW_RESULT_OK) {
-		ERROR("Error validating A/B metadata from disk.\nResetting and writing new A/B metadata to disk.\n");
+		ERROR("Error validating A/B metadata from disk.\n"
+			"Resetting and writing new A/B metadata to disk.\n");
 		avb_ab_data_init(data);
 		return avb_ab_update_and_save(data);
 	}
@@ -456,10 +496,128 @@ static AvbABFlowResult avb_ab_read_data(AvbABData *data)
 	return AVB_AB_FLOW_RESULT_OK;
 }
 
+static void init_virtual_ab_msg(MiscVirtABMsg *ab_msg) {
+	ab_msg->magic = MISC_VIRTUAL_AB_MAGIC_HEADER;
+	ab_msg->version = MAX_VIRTUAL_AB_MESSAGE_VERSION;
+	ab_msg->merge_status = VIRTUAL_AB_NONE;
+	ab_msg->source_slot = 0;
+}
+
+static int validate_virtual_ab_msg(MiscVirtABMsg *ab_msg) {
+	return ((ab_msg->magic == MISC_VIRTUAL_AB_MAGIC_HEADER) &&
+		(ab_msg->version <= MAX_VIRTUAL_AB_MESSAGE_VERSION) &&
+		(ab_msg->merge_status <= VIRTUAL_AB_CANCELLED) &&
+		(ab_msg->source_slot < AVB_AB_MAX_SLOTS));
+}
+
+static AvbABFlowResult virtual_ab_msg_write(MiscVirtABMsg *ab_msg) {
+	uint8_t buf[EMMC_SECTOR_SIZE];
+	AvbABFlowResult result = 0;
+
+	if (!validate_virtual_ab_msg(ab_msg)) {
+		ERROR("Invalid Virtual A/B message passed to %s\n", __func__);
+		return AVB_AB_FLOW_RESULT_ERROR_INVALID_ARGUMENT;
+	}
+
+	result = read_sector_from_misc((uint32_t *)&buf[0],
+				VIRTUAL_AB_MSG_DATA_OFFSET);
+	if (result != AVB_AB_FLOW_RESULT_OK) {
+		ERROR("Failed to read Virtual A/B block err = (%d)\n", result);
+		return result;
+	}
+
+	memcpy(&buf[0], ab_msg, sizeof(*ab_msg));
+
+	result = write_sector_to_misc((uint32_t *)&buf[0],
+				VIRTUAL_AB_MSG_DATA_OFFSET);
+	if (result != AVB_AB_FLOW_RESULT_OK) {
+		ERROR("Failed to read Virtual A/B block err = (%d)\n", result);
+		return result;
+	}
+
+	return AVB_AB_FLOW_RESULT_OK;
+}
+
+static AvbABFlowResult virtual_ab_msg_read(MiscVirtABMsg *ab_msg) {
+	uint8_t buf[EMMC_SECTOR_SIZE];
+	AvbABFlowResult result = AVB_AB_FLOW_RESULT_OK;
+
+	result = read_sector_from_misc((uint32_t *)&buf[0],
+				VIRTUAL_AB_MSG_DATA_OFFSET);
+	if (result != AVB_AB_FLOW_RESULT_OK) {
+		ERROR("Failed to read Virtual A/B block err = (%d)\n", result);
+		return result;
+	}
+
+	memcpy(ab_msg, &buf[0], sizeof(*ab_msg));
+
+	if (!validate_virtual_ab_msg(ab_msg)) {
+		ERROR("Error validating Virtual A/B message from disk.\n"
+			"Re-init and writing new Virtual A/B message to disk.\n");
+		init_virtual_ab_msg(ab_msg);
+		return virtual_ab_msg_write(ab_msg);
+	}
+
+	return AVB_AB_FLOW_RESULT_OK;
+}
+
+/*
+ * This function checks if no tries_remaining left for
+ * previously updated slot via Virtual A/B. If so, we need
+ * to cancel such update by writing specific code to
+ * merge_status field on /misc.
+ */
+static void check_and_cancel_virtual_ab(int slot_idx) {
+	AvbABFlowResult result = AVB_AB_FLOW_RESULT_OK;
+	MiscVirtABMsg virtual_ab_msg;
+
+	result = virtual_ab_msg_read(&virtual_ab_msg);
+	if (result != AVB_AB_FLOW_RESULT_OK) {
+		ERROR("Failed to load /misc from MMC\n");
+		return;
+	}
+
+	/* Check if we previously applied update */
+	if ((virtual_ab_msg.merge_status == VIRTUAL_AB_SNAPSHOTED)
+		&& (virtual_ab_msg.source_slot != slot_idx)) {
+		/*
+		 * Okay, updated U-Boot on slot_idx failed, need to cancel
+		 * update in misc_virtual_ab_message to inform Android.
+		 */
+		virtual_ab_msg.merge_status = VIRTUAL_AB_CANCELLED;
+
+		result = virtual_ab_msg_write(&virtual_ab_msg);
+		if (result == AVB_AB_FLOW_RESULT_OK) {
+			NOTICE("Virtual update for slot %u cancelled\n", slot_idx);
+		} else {
+			ERROR("Failed to save Virtual A/B message to /misc\n");
+		}
+	}
+}
+
 static AvbABFlowResult avb_ab_get_curr_slot(const AvbABData *data, int *slot_idx)
 {
 	int slot_a_bootable = 0;
 	int slot_b_bootable = 0;
+
+	/*
+	 * For Virtual A/B we need to check probable slot switching
+	 * in case of unsuccessful U-boot boot-up from new slot after
+	 * Virtual update. In such case we need to cancel virtual
+	 * update and record this to misc. If slot has non-zero
+	 * priority and zero tries_remaining it means that on
+	 * previous boot it has spent all boot-up tries and,
+	 * if Virtual A/B is in progress - it should be canceled.
+	 */
+	if (data->slots[AVB_AB_SLOT_A].priority &&
+	!(data->slots[AVB_AB_SLOT_A].successful_boot) &&
+	!data->slots[AVB_AB_SLOT_A].tries_remaining){
+		check_and_cancel_virtual_ab(AVB_AB_SLOT_A);
+	} else if (data->slots[AVB_AB_SLOT_B].priority &&
+		!(data->slots[AVB_AB_SLOT_B].successful_boot) &&
+		!(data->slots[AVB_AB_SLOT_B].tries_remaining)) {
+		check_and_cancel_virtual_ab(AVB_AB_SLOT_B);
+	}
 
 	slot_a_bootable = avb_ab_slot_is_bootable(&data->slots[AVB_AB_SLOT_A]);
 	slot_b_bootable = avb_ab_slot_is_bootable(&data->slots[AVB_AB_SLOT_B]);
