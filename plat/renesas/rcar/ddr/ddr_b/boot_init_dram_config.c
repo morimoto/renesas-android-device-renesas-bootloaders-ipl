@@ -4,6 +4,8 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
+#include <board.h>
+
 /*******************************************************************************
  *	NUMBER OF BOARD CONFIGRATION
  *	PLEASE DEFINE
@@ -1846,6 +1848,35 @@ static uint32_t opencheck_SSI_WS6(void)
 
 #endif /* (RCAR_GEN3_ULCB == 0) */
 
+#if (RCAR_GEN3_ULCB == 1)
+static uint32_t ddr_rank_judge(void)
+{
+	uint32_t brd;
+	int32_t ret;
+	uint32_t type = 0U;
+	uint32_t rev = 0U;
+
+	brd = 99U;
+	ret = get_board_type(&type, &rev);
+	if ((ret == 0) && (rev != 0xFFU)) {
+#if (RCAR_DRAM_LPDDR4_MEMCONF == 0)
+		brd = 7U; /* 8Gbit/1rank */
+#else
+		if (type == BOARD_STARTER_KIT_PRE) {
+			if (rev == 0x21U) {
+				brd = 14U; /* 16Gbit/1rank */
+			} else {
+				brd = 8U;  /* 8Gbit/2rank */
+			}
+		} else {
+			/* No process */
+		}
+#endif
+	}
+	return brd;
+}
+#endif
+
 static uint32_t _board_judge(void)
 {
 	uint32_t brd;
@@ -1858,11 +1889,7 @@ static uint32_t _board_judge(void)
 			brd = 2;
 		} else {
 			/* RENESAS Starter Kit(H3 Ver.2.0 or later/SIP) board */
-#if (RCAR_DRAM_LPDDR4_MEMCONF == 0)
-			brd = 7;  /* 8Gbit/1rank */
-#else
-			brd = 8;  /* 8Gbit/2rank */
-#endif
+			 brd = ddr_rank_judge();
 		}
 	} else if (Prr_Product == PRR_PRODUCT_M3) {
 		if (Prr_Cut >= PRR_PRODUCT_30) {

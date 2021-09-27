@@ -135,7 +135,7 @@ void qos_init_h3_v30(uint32_t board_type)
 
 	if (board_type == 7)
 		split_area = 0x1BU;
-	else if (board_type == 8)                             /* default 2GB */
+	else if (board_type == 8 || board_type == 14)         /* default 2GB */
 		split_area = 0x1CU;
 	else {
 		ERROR("QOS init: unknown board type.");
